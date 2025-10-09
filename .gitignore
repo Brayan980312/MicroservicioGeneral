@@ -1,0 +1,59 @@
+# =========================
+# Reglas Visual Studio / .NET
+# =========================
+
+# Archivos de usuario y temporales
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Carpetas generadas
+.vs/
+bin/
+obj/
+TestResults/
+[Bb]uild/
+[Ll]og/
+[Aa]ppPackages/
+*.nupkg
+*.snupkg
+
+# Archivos de paquetes NuGet
+*.nuspec
+*.nuget.props
+*.nuget.targets
+packages/
+
+# Archivos de cobertura y debug
+*.coverage
+*.coveragexml
+*.dll
+*.pdb
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+firebase.json
+.firebaserc
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sw?
