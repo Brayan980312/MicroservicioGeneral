@@ -7,7 +7,7 @@
     /// <summary>Define el contrato del servicio de parametros.
     /// <para>Este servicio permite operaciones de actualización y lectura de parametros, utilizando los contratos genéricos <see cref="IUpdateService{TParam, TEntity}"/> y <see cref="IReadWithParamsService{TParam, TEntity}"/>.</para>
     /// </summary>
-    public interface IParametrosService : IUpdateService<ParamsActualizarParametros, IEnumerable<Parametros>>, IReadWithParamsService<ParamsConsultarParametros,Parametros>
+    public interface IConfiguracionService : IUpdateService<ParamsActualizarParametros, IEnumerable<Parametros>>, IReadWithParamsService<ParamsConsultarParametros,Parametros>
     {
         /* Aquí se debe dejar el contrato personalizado */
     }

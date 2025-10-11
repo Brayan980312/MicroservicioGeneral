@@ -1,4 +1,4 @@
-﻿namespace Infrastructure.General.Persistence.Mapping
+﻿namespace Infrastructure.General.Persistence.Mapping.Configuracion
 {
     using Domain.General.Entities;
     using Microsoft.EntityFrameworkCore;

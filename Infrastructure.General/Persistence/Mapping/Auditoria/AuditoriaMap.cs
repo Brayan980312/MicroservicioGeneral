@@ -1,4 +1,4 @@
-﻿namespace Infrastructure.General.Persistence.Mapping
+﻿namespace Infrastructure.General.Persistence.Mapping.Auditoria
 {
     using Domain.General.Entities;
     using Microsoft.EntityFrameworkCore;

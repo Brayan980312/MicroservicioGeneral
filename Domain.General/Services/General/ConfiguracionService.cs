@@ -1,20 +1,19 @@
-﻿using AutoMapper;
-using Domain.General.CustomEntities.Params;
-using Domain.General.Entities;
-using Domain.General.Interfaces.General;
-using Domain.General.Interfaces.UnitOfWork;
-using System.ComponentModel.DataAnnotations;
-using System.Linq.Expressions;
-using System.Transactions;
-using Utilitarios.Constants;
-using Utilitarios.Extensions;
-using Utilitarios.Helpers;
-
-namespace Domain.General.Services.General
+﻿namespace Domain.General.Services.General
 {
+    using AutoMapper;
+    using Domain.General.CustomEntities.Params;
+    using Domain.General.Entities;
+    using Domain.General.Interfaces.General;
+    using Domain.General.Interfaces.UnitOfWork;
+    using System.ComponentModel.DataAnnotations;
+    using System.Linq.Expressions;
+    using System.Transactions;
+    using Utilitarios.Constants;
+    using Utilitarios.Extensions;
+    using Utilitarios.Helpers;
 
-    /// <summary>Implementación de reglas de negocio para el servicio de Auditoria.</summary>
-    public class ParametrosService : IParametrosService
+    /// <summary>Implementación de reglas de negocio para el servicio de configuracion.</summary>
+    public class ConfiguracionService : IConfiguracionService
     {
         #region Variables
 
@@ -28,9 +27,9 @@ namespace Domain.General.Services.General
 
         #region Constructor
 
-        ///<summary>Inicializa una nueva instancia de la clase ParametrosService.</summary>
+        ///<summary>Inicializa una nueva instancia de la clase ConfiguracionService.</summary>
         /// <param name="iUnitOfWork">Inyección de dependencias de la unidad de trabajo - UnitOfWork.</param>
-        public ParametrosService(IUnitOfWork iUnitOfWork, IMapper iMapper)
+        public ConfiguracionService(IUnitOfWork iUnitOfWork, IMapper iMapper)
         {
             _iUnitOfWork = iUnitOfWork;
             _iMapper = iMapper;
@@ -56,6 +55,7 @@ namespace Domain.General.Services.General
                 await ValidarCamposActualizarParametro(paramsUpdate);
                 IEnumerable<Parametros> listaParametros = new List<Parametros>();
                 Parametros updateParametro = _iMapper.Map<Parametros>(paramsUpdate);
+                updateParametro.ParametrosEstado = true;
                 await _iUnitOfWork.Repository<Parametros>().ActualizarAsync(updateParametro);
                 await _iUnitOfWork.SaveChangesAsync();
 
@@ -74,7 +74,7 @@ namespace Domain.General.Services.General
 
         #region ValidacionCampos
         /// <summary>Valida los campos obligatorios para realizar la actualización del parametro.</summary>
-        /// <param name="parametrosRegistrarUsuario">El objeto de tipo ParametrosActualizarParametro que contiene los detalles a validar.</param>
+        /// <param name="parametrosActualizarParametro">El objeto de tipo ParametrosActualizarParametro que contiene los detalles a validar.</param>
         /// <exception cref="ValidationException">Lanza una excepción si alguno de los campos obligatorios es nulo o tiene un valor inválido.</exception>
         private async Task ValidarCamposActualizarParametro(ParamsActualizarParametros parametrosActualizarParametro)
         {

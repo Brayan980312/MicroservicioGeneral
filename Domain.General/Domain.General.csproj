@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="CustomEntities\Poco\" />
     <Folder Include="Enums\" />
     <Folder Include="Exceptions\" />
     <Folder Include="Interfaces\Repository\" />
