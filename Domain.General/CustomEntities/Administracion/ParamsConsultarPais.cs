@@ -1,4 +1,4 @@
-﻿namespace Domain.General.CustomEntities.Pais
+﻿namespace Domain.General.CustomEntities.Administracion
 {
     public class ParamsConsultarPais
     {

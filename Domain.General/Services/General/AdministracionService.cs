@@ -2,7 +2,6 @@
 {
     using AutoMapper;
     using Domain.General.CustomEntities.Administracion;
-    using Domain.General.CustomEntities.Pais;
     using Domain.General.Entities;
     using Domain.General.Interfaces.General;
     using Domain.General.Interfaces.UnitOfWork;
@@ -118,6 +117,44 @@
             }
         }
 
+        /// <inheritdoc />
+        public async Task<IEnumerable<MetodoPago>> GetWithParamsAsync(ParamsConsultarMetodoPago paramsSearch)
+        {
+            MetodoPago entidad = _iMapper.Map<MetodoPago>(paramsSearch);
+            Expression<Func<MetodoPago, bool>> filtro = entidad.ToFilterExpression<MetodoPago>();
+            return await _iUnitOfWork.Repository<MetodoPago>().ConsultarListaAsync(filtro);
+        }
+
+        /// <inheritdoc />
+        public async Task<IEnumerable<MetodoPago>> UpdateAsync(ParamsCrearActualizarMetodoPago paramsCreateUpdate)
+        {
+            using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
+            {
+                await ValidarCamposCrearActualizarMetodoPago(paramsCreateUpdate);
+                IEnumerable<MetodoPago> listaEntidad = new List<MetodoPago>();
+                MetodoPago createUpdateEntidad = _iMapper.Map<MetodoPago>(paramsCreateUpdate);
+
+                if (paramsCreateUpdate.MetodoPagoId != null && paramsCreateUpdate.MetodoPagoId > 0)
+                {
+                    await _iUnitOfWork.Repository<MetodoPago>().ActualizarAsync(createUpdateEntidad);
+                }
+                else
+                {
+                    // Crea y garantiza que el atributo primario vaya null
+                    createUpdateEntidad.MetodoPagoId = null;
+                    await _iUnitOfWork.Repository<MetodoPago>().AdicionarAsync(createUpdateEntidad);
+                }
+
+                await _iUnitOfWork.SaveChangesAsync();
+
+                // Llama el servicio ya creado para consultar la entidad completa
+                ParamsConsultarMetodoPago parametrosFiltrar = new ParamsConsultarMetodoPago();
+                listaEntidad = await GetWithParamsAsync(parametrosFiltrar);
+
+                scope.Complete();
+                return listaEntidad;
+            }
+        }
         #endregion
 
         #region ValidacionCampos
@@ -238,6 +275,50 @@
                 {
                     errores += string.Format(DefaultMessages.DataNotFound, "El país");
                 }
+            }
+
+            if (!string.IsNullOrEmpty(errores))
+            {
+                throw new ValidationException(errores);
+            }
+        }
+
+        /// <summary>Valida los campos obligatorios para realizar la creacion o actualización del metodo de pago.</summary>
+        /// <param name="parametrosCrearActualizarMetodoPago">El objeto de tipo ParamsCrearActualizarMetodoPago que contiene los detalles a validar.</param>
+        /// <exception cref="ValidationException">Lanza una excepción si alguno de los campos obligatorios es nulo o tiene un valor inválido.</exception>
+        private async Task ValidarCamposCrearActualizarMetodoPago(ParamsCrearActualizarMetodoPago parametrosCrearActualizarMetodoPago)
+        {
+            string errores = string.Empty;
+            IEnumerable<MetodoPago> Resultado = new List<MetodoPago>();
+            ParamsConsultarMetodoPago Existentes = new ParamsConsultarMetodoPago();
+            Resultado = await GetWithParamsAsync(Existentes);
+
+            if (parametrosCrearActualizarMetodoPago.MetodoPagoId != null && parametrosCrearActualizarMetodoPago.MetodoPagoId > 0)
+            {
+                // Valida si el Id del metodo de pago existe
+                if (Resultado.Where(x => x.MetodoPagoId == parametrosCrearActualizarMetodoPago.MetodoPagoId).Count() == 0)
+                {
+                    errores += string.Format(DefaultMessages.DataNotFound, "El metodo de pago");
+                }
+            }
+
+            if (string.IsNullOrEmpty(parametrosCrearActualizarMetodoPago.MetodoPagoNombre))
+            {
+                errores += string.Format(DefaultMessages.FieldRequiredWithName, "nombre");
+            }
+            else
+            {
+                // Valida si el nombre del metodo de pago ya existe en el sistema
+                if (Resultado.Any(x => x.MetodoPagoNombre.Trim().ToUpper() == parametrosCrearActualizarMetodoPago.MetodoPagoNombre.Trim().ToUpper() &&
+                                                                    x.MetodoPagoId != parametrosCrearActualizarMetodoPago.MetodoPagoId))
+                {
+                    errores += string.Format(DefaultMessages.AlreadyExistsData, $"el metodo de pago '{parametrosCrearActualizarMetodoPago.MetodoPagoNombre.Trim()}'");
+                }
+            }
+
+            if (string.IsNullOrEmpty(parametrosCrearActualizarMetodoPago.MetodoPagoDescripcion))
+            {
+                errores += string.Format(DefaultMessages.FieldRequiredWithName, "descripción");
             }
 
             if (!string.IsNullOrEmpty(errores))

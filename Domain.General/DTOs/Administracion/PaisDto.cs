@@ -1,4 +1,4 @@
-﻿namespace Domain.General.DTOs.Pais
+﻿namespace Domain.General.DTOs.Administracion
 {
     public class PaisDto
     {

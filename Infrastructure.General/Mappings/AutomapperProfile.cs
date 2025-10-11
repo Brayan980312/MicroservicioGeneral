@@ -6,8 +6,6 @@
     using Domain.General.DTOs.Auditoria;
     using Domain.General.DTOs.Parametros;
     using Domain.General.CustomEntities.Auditoria;
-    using Domain.General.DTOs.Pais;
-    using Domain.General.CustomEntities.Pais;
     using Domain.General.DTOs.Administracion;
     using Domain.General.CustomEntities.Administracion;
 
@@ -46,6 +44,13 @@
             CreateMap<Ciudad, ParamsCrearActualizarCiudad>().ReverseMap();
             /// <summary>Mapea la entidad <see cref="Ciudad"/> a <see cref="ParamsConsultarCiudad"/> y viceversa.</summary>
             CreateMap<Ciudad, ParamsConsultarCiudad>().ReverseMap();
+
+            /// <summary>Mapea la entidad <see cref="MetodoPago"/> a <see cref="MetodoPagoDto"/> y viceversa.</summary>
+            CreateMap<MetodoPago, MetodoPagoDto>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="MetodoPago"/> a <see cref="ParamsCrearActualizarMetodoPago"/> y viceversa.</summary>
+            CreateMap<MetodoPago, ParamsCrearActualizarMetodoPago>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="MetodoPago"/> a <see cref="ParamsConsultarMetodoPago"/> y viceversa.</summary>
+            CreateMap<MetodoPago, ParamsConsultarMetodoPago>().ReverseMap();
         }
     }
 }

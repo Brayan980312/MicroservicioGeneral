@@ -2,11 +2,7 @@
 {
     using AutoMapper;
     using Domain.General.CustomEntities.Administracion;
-    using Domain.General.CustomEntities.Pais;
-    using Domain.General.CustomEntities.Params;
     using Domain.General.DTOs.Administracion;
-    using Domain.General.DTOs.Pais;
-    using Domain.General.DTOs.Parametros;
     using Domain.General.Entities;
     using Domain.General.Interfaces.General;
     using Domain.General.Interfaces.UnitOfWork;
@@ -72,7 +68,7 @@
         /// <returns>Lista Dto con toda la entidad del sistema.</returns>
         [HttpPost]
         [Route("CrearActualizarCiudad")]
-        public async Task<ActionResult<List<CiudadDto>>> CrearActualizarPais(ParamsCrearActualizarCiudad parametrosCrearActualizarEntidad)
+        public async Task<ActionResult<List<CiudadDto>>> CrearActualizarCiudad(ParamsCrearActualizarCiudad parametrosCrearActualizarEntidad)
         {
             IAdministracionService Service = _iServiceUnitOfWork.GetService<IAdministracionService>();
 
@@ -84,12 +80,38 @@
         /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
         /// <returns>Lista de Dto con toda la entidad del sistema.</returns>
         [HttpGet("ConsultarCiudad")]
-        public async Task<ActionResult<List<CiudadDto>>> ConsultarPais([FromQuery] ParamsConsultarCiudad parametrosConsultarEntidad)
+        public async Task<ActionResult<List<CiudadDto>>> ConsultarCiudad([FromQuery] ParamsConsultarCiudad parametrosConsultarEntidad)
         {
             IAdministracionService Service = _iServiceUnitOfWork.GetService<IAdministracionService>();
 
             IEnumerable<Ciudad> listadoEntidad = await Service.GetWithParamsAsync(parametrosConsultarEntidad);
             return Ok(_iMapper.Map<List<CiudadDto>>(listadoEntidad));
+        }
+    
+
+        /// <summary>Endpoint para crear o actualizar la entidad.</summary>
+        /// <param name="parametrosCrearActualizarEntidad">Parametros de entrada para realizar la operacion.</param>
+        /// <returns>Lista Dto con toda la entidad del sistema.</returns>
+        [HttpPost]
+        [Route("CrearActualizarMetodoPago")]
+        public async Task<ActionResult<List<MetodoPagoDto>>> CrearActualizarMetodoPago(ParamsCrearActualizarMetodoPago parametrosCrearActualizarEntidad)
+        {
+            IAdministracionService Service = _iServiceUnitOfWork.GetService<IAdministracionService>();
+
+            IEnumerable<MetodoPago> listadoEntidad = await Service.UpdateAsync(parametrosCrearActualizarEntidad);
+            return Ok(_iMapper.Map<List<MetodoPagoDto>>(listadoEntidad));
+        }
+
+        /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
+        /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
+        /// <returns>Lista de Dto con toda la entidad del sistema.</returns>
+        [HttpGet("ConsultarMetodoPago")]
+        public async Task<ActionResult<List<MetodoPagoDto>>> ConsultarMetodoPago([FromQuery] ParamsConsultarMetodoPago parametrosConsultarEntidad)
+        {
+            IAdministracionService Service = _iServiceUnitOfWork.GetService<IAdministracionService>();
+
+            IEnumerable<MetodoPago> listadoEntidad = await Service.GetWithParamsAsync(parametrosConsultarEntidad);
+            return Ok(_iMapper.Map<List<MetodoPagoDto>>(listadoEntidad));
         }
     }
 }
