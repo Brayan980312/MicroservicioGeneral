@@ -13,7 +13,7 @@
     [Route("api/[controller]")]
     [ApiController]
 
-    public class ParametrosController : ControllerBase
+    public class ConfiguracionController : ControllerBase
     {
         #region Variables
 
@@ -30,7 +30,7 @@
         /// <summary>Inicializa una nueva instancia de la clase ParametrosController.</summary>
         /// <param name="iMapper">Inyección de convertidor o resolutor de modelos.</param>
         /// <param name="iServiceUnitOfWork">Inyección de dependecias de Servicios.</param>
-        public ParametrosController(IMapper iMapper, IServiceUnitOfWork iServiceUnitOfWork)
+        public ConfiguracionController(IMapper iMapper, IServiceUnitOfWork iServiceUnitOfWork)
         {
             _iMapper = iMapper;
             _iServiceUnitOfWork = iServiceUnitOfWork;
@@ -45,7 +45,7 @@
         [Route("ActualizarParametro")]
         public async Task<ActionResult<List<ParametrosDto>>> ActualizarParametro(ParamsActualizarParametros parametrosActualizarParametro)
         {
-            IParametrosService parametrosService = _iServiceUnitOfWork.GetService<IParametrosService>();
+            IConfiguracionService parametrosService = _iServiceUnitOfWork.GetService<IConfiguracionService>();
 
             IEnumerable<Parametros> listadoParametros = await parametrosService.UpdateAsync(parametrosActualizarParametro);
             return Ok(_iMapper.Map<List<ParametrosDto>>(listadoParametros));
@@ -57,7 +57,7 @@
         [HttpGet("ConsultarParametros")]
         public async Task<ActionResult<List<ParametrosDto>>> ConsultarParametros([FromQuery] ParamsConsultarParametros parametrosConsultarParametros)
         {
-            IParametrosService parametrosService = _iServiceUnitOfWork.GetService<IParametrosService>();
+            IConfiguracionService parametrosService = _iServiceUnitOfWork.GetService<IConfiguracionService>();
 
             IEnumerable<Parametros> listadoParametros = await parametrosService.GetWithParamsAsync(parametrosConsultarParametros);
             return Ok(_iMapper.Map<List<ParametrosDto>>(listadoParametros));

@@ -4,9 +4,9 @@
     using System.Threading.Tasks;
     using AutoMapper;
     using Domain.General.Entities;
-    using Domain.General.CustomEntities.Params;
     using Domain.General.Interfaces.General;
     using Domain.General.Interfaces.UnitOfWork;
+    using Domain.General.CustomEntities.Auditoria;
 
     /// <summary>Implementación de reglas de negocio para el servicio de Auditoria.</summary>
     public class AuditoriaService : IAuditoriaService
@@ -34,12 +34,6 @@
         #endregion
 
         #region Métodos
-
-        /// <inheritdoc />
-        public async Task<IEnumerable<Auditoria>> GetAllAsync()
-        {
-            return await _iUnitOfWork.Repository<Auditoria>().ConsultarTodosAsync();
-        }
 
         /// <inheritdoc />
         public async Task<Auditoria> CreateAsync(ParamsAuditoria paramsCreate)

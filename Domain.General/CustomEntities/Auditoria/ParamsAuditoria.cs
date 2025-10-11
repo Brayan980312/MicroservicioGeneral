@@ -1,4 +1,4 @@
-﻿namespace Domain.General.CustomEntities.Params
+﻿namespace Domain.General.CustomEntities.Auditoria
 {
     /// <summary>Realiza la inicialización de las propiedades de la entidad ParamsAuditoria.</summary>
     public class ParamsAuditoria

@@ -1,6 +1,5 @@
 ﻿namespace Api.General.Middlewares
 {
-    using Domain.General.CustomEntities.Params;
     using Domain.General.Interfaces.General;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
@@ -11,6 +10,7 @@
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
+    using Domain.General.CustomEntities.Auditoria;
 
     /// <summary>Middleware responsable de auditar todas las solicitudes y respuestas HTTP, registrando tanto los datos de entrada como los de salida en la base de datos,
     /// incluyendo información sobre el método, la ruta, el código de estado y cualquier error.
