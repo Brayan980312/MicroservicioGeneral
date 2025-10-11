@@ -80,6 +80,9 @@ builder.Services.AddDependencyInjection();
 // Configuración del Contexto.
 builder.Services.AddDatabaseContext(builder.Configuration);
 
+// Configuración de peticiones a APIs externas
+builder.Services.AddExternalServices(builder.Configuration);
+
 // Configuración de la autenticación JWT.
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"];

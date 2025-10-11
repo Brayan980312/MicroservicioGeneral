@@ -8,6 +8,8 @@
     using Domain.General.CustomEntities.Auditoria;
     using Domain.General.DTOs.Administracion;
     using Domain.General.CustomEntities.Administracion;
+    using Domain.General.DTOs.Creditos;
+    using Domain.General.CustomEntities.Creditos;
 
 
     /// <summary>Configura los mapeos entre las entidades de dominio general y los objetos de transferencia de datos (DTOs/Params) mediante AutoMapper.
@@ -51,6 +53,13 @@
             CreateMap<MetodoPago, ParamsCrearActualizarMetodoPago>().ReverseMap();
             /// <summary>Mapea la entidad <see cref="MetodoPago"/> a <see cref="ParamsConsultarMetodoPago"/> y viceversa.</summary>
             CreateMap<MetodoPago, ParamsConsultarMetodoPago>().ReverseMap();
+
+            /// <summary>Mapea la entidad <see cref="CreditoUsuario"/> a <see cref="CreditoUsuarioDto"/> y viceversa.</summary>
+            CreateMap<CreditoUsuario, CreditoUsuarioDto>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="CreditoUsuario"/> a <see cref="ParamsCrearActualizarCreditoUsuario"/> y viceversa.</summary>
+            CreateMap<CreditoUsuario, ParamsCrearActualizarCreditoUsuario>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="CreditoUsuario"/> a <see cref="ParamsConsultarCreditoUsuario"/> y viceversa.</summary>
+            CreateMap<CreditoUsuario, ParamsConsultarCreditoUsuario>().ReverseMap();
         }
     }
 }
