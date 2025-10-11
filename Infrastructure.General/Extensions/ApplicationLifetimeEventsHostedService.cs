@@ -16,7 +16,6 @@
     public class ApplicationLifetimeEventsHostedService : IHostedService
     {
         private readonly IHostApplicationLifetime _appLifetime;
-        private readonly ILogger<ApplicationLifetimeEventsHostedService> _logger;
 
         /// <summary> Crea una nueva instancia de <see cref="ApplicationLifetimeEventsHostedService"/>.</summary>
         /// <param name="appLifetime">Interfaz que expone los tokens de cancelación y callbacks asociados al ciclo de vida de la aplicación.</param>
