@@ -1,7 +1,9 @@
 ﻿namespace Infrastructure.General.Extensions
 {
+    using Domain.General.Interfaces.External;
     using Domain.General.Interfaces.UnitOfWork;
     using Domain.General.Services.UnitOfWork;
+    using Infrastructure.General.External;
     using Infrastructure.General.Persistence.Context;
     using Infrastructure.General.Repository;
     using Microsoft.EntityFrameworkCore;
@@ -10,6 +12,7 @@
     using System.Reflection;
     using Utilitarios.Contracts;
     using Utilitarios.Data;
+    using Microsoft.Extensions.Http;
 
     /// <summary>Clase estática que contiene métodos de extensión para configurar los servicios y dependencias del contenedor de inversión de control (IoC).
     /// Esta clase facilita la configuración del contexto de base de datos, la inyección de dependencias (DI) y el registro automático de servicios según la convención de nombres utilizada en la capa de dominio
@@ -44,6 +47,32 @@
 
             // Servicio hospedado para manejar eventos del ciclo de vida de la aplicación.
             services.AddHostedService<ApplicationLifetimeEventsHostedService>();
+        }
+
+        /// <summary>
+        /// Registra los servicios externos y configura la comunicación HTTP hacia otros microservicios o APIs externas.
+        /// </summary>
+        /// <param name="services">
+        /// Colección de servicios (<see cref="IServiceCollection"/>) utilizada por el contenedor de inyección de dependencias (IoC).
+        /// En esta colección se agrega la configuración necesaria para que las clases que implementen <see cref="IExternalService"/> 
+        /// puedan ser inyectadas y utilizadas dentro de la aplicación.
+        /// </param>
+        /// <param name="configuration">
+        /// Proveedor de configuración (<see cref="IConfiguration"/>) que permite acceder a los valores definidos en el archivo 
+        /// <c>appsettings.json</c>, específicamente la clave <c>ExternalServices:BaseUrl</c> donde se define la URL base 
+        /// del microservicio externo.
+        /// </param>
+        public static void AddExternalServices(this IServiceCollection services, IConfiguration configuration)
+        {
+            var baseUrl = configuration["ExternalServices:BaseUrl"];
+
+            services.AddHttpClient<IExternalService, ExternalService>(client =>
+            {
+                if (!string.IsNullOrWhiteSpace(baseUrl))
+                    client.BaseAddress = new Uri(baseUrl);
+
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+            });
         }
 
         /// <summary>Registra de forma automática todos los servicios de la capa de dominio siguiendo una convención de nombres.</summary>

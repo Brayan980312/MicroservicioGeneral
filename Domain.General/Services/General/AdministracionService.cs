@@ -48,7 +48,7 @@
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Pais>> UpdateAsync(ParamsCrearActualizarPais paramsCreateUpdate)
+        public async Task<IEnumerable<Pais>> CreateAsync(ParamsCrearActualizarPais paramsCreateUpdate)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
@@ -87,7 +87,7 @@
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Ciudad>> UpdateAsync(ParamsCrearActualizarCiudad paramsCreateUpdate)
+        public async Task<IEnumerable<Ciudad>> CreateAsync(ParamsCrearActualizarCiudad paramsCreateUpdate)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
@@ -126,7 +126,7 @@
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<MetodoPago>> UpdateAsync(ParamsCrearActualizarMetodoPago paramsCreateUpdate)
+        public async Task<IEnumerable<MetodoPago>> CreateAsync(ParamsCrearActualizarMetodoPago paramsCreateUpdate)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {

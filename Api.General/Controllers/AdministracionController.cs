@@ -47,7 +47,7 @@
         {
             IAdministracionService Service = _iServiceUnitOfWork.GetService<IAdministracionService>();
 
-            IEnumerable<Pais> listadoEntidad = await Service.UpdateAsync(parametrosCrearActualizarEntidad);
+            IEnumerable<Pais> listadoEntidad = await Service.CreateAsync(parametrosCrearActualizarEntidad);
             return Ok(_iMapper.Map<List<PaisDto>>(listadoEntidad));
         }
 
@@ -72,7 +72,7 @@
         {
             IAdministracionService Service = _iServiceUnitOfWork.GetService<IAdministracionService>();
 
-            IEnumerable<Ciudad> listadoEntidad = await Service.UpdateAsync(parametrosCrearActualizarEntidad);
+            IEnumerable<Ciudad> listadoEntidad = await Service.CreateAsync(parametrosCrearActualizarEntidad);
             return Ok(_iMapper.Map<List<CiudadDto>>(listadoEntidad));
         }
 
@@ -98,7 +98,7 @@
         {
             IAdministracionService Service = _iServiceUnitOfWork.GetService<IAdministracionService>();
 
-            IEnumerable<MetodoPago> listadoEntidad = await Service.UpdateAsync(parametrosCrearActualizarEntidad);
+            IEnumerable<MetodoPago> listadoEntidad = await Service.CreateAsync(parametrosCrearActualizarEntidad);
             return Ok(_iMapper.Map<List<MetodoPagoDto>>(listadoEntidad));
         }
 
