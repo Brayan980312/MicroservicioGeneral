@@ -10,6 +10,8 @@
     using Domain.General.CustomEntities.Administracion;
     using Domain.General.DTOs.Creditos;
     using Domain.General.CustomEntities.Creditos;
+    using Domain.General.DTOs.Avion;
+    using Domain.General.CustomEntities.Avion;
 
 
     /// <summary>Configura los mapeos entre las entidades de dominio general y los objetos de transferencia de datos (DTOs/Params) mediante AutoMapper.
@@ -60,6 +62,21 @@
             CreateMap<CreditoUsuario, ParamsCrearActualizarCreditoUsuario>().ReverseMap();
             /// <summary>Mapea la entidad <see cref="CreditoUsuario"/> a <see cref="ParamsConsultarCreditoUsuario"/> y viceversa.</summary>
             CreateMap<CreditoUsuario, ParamsConsultarCreditoUsuario>().ReverseMap();
+
+            /// <summary>Mapea la entidad <see cref="Avion"/> a <see cref="AvionDto"/> y viceversa.</summary>
+            CreateMap<Avion, AvionDto>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="Avion"/> a <see cref="ParamsCrearActualizarAvion"/> y viceversa.</summary>
+            CreateMap<Avion, ParamsCrearActualizarAvion>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="Avion"/> a <see cref="ParamsConsultarAvion"/> y viceversa.</summary>
+            CreateMap<Avion, ParamsConsultarAvion>().ReverseMap();
+
+            /// <summary>Mapea la entidad <see cref="AsientoAvion"/> a <see cref="AsientoAvionDto"/> y viceversa.</summary>
+            CreateMap<AsientoAvion, AsientoAvionDto>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="AsientoAvion"/> a <see cref="ParamsCrearActualizarAsientoAvion"/> y viceversa.</summary>
+            CreateMap<AsientoAvion, ParamsCrearActualizarAsientoAvion>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="AsientoAvion"/> a <see cref="ParamsConsultarAsientoAvion"/> y viceversa.</summary>
+            CreateMap<AsientoAvion, ParamsConsultarAsientoAvion>().ReverseMap();
+
         }
     }
 }

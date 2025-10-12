@@ -1,11 +1,10 @@
-﻿using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
-using System.ComponentModel.DataAnnotations;
-using Domain.General.Interfaces.External;
-using Utilitarios.Entities;
-
-namespace Infrastructure.General.External
+﻿namespace Infrastructure.General.External
 {
+    using Newtonsoft.Json.Linq;
+    using Newtonsoft.Json;
+    using System.ComponentModel.DataAnnotations;
+    using Domain.General.Interfaces.External;
+    using Utilitarios.Entities;
     public class ExternalService : IExternalService
     {
         private readonly HttpClient _httpClient;
