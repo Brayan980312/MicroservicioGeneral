@@ -53,30 +53,27 @@
         #region Métodos
 
         /// <inheritdoc />
-        public async Task<CreditoUsuario> GetWithParamsAsync(ParamsConsultarCreditoUsuario paramsSearch)
+        public async Task<CreditoUsuario> GetWithParamsAsync(ParamsConsultarCreditoUsuario paramsSearch, int? userId = null)
         {
             CreditoUsuario creditoUsuario = new CreditoUsuario();
-            creditoUsuario.UsuarioId = paramsSearch.UsuarioId;
             CreditoUsuario creditoUsuarioBuscado = new CreditoUsuario();
-            string errores = await _iSeguridadService.ConsultarUsuarioExistente(paramsSearch.UsuarioId);
-            if (!string.IsNullOrEmpty(errores))
-            {
-                throw new ValidationException(errores);
-            }
+
             CreditoUsuario entidad = _iMapper.Map<CreditoUsuario>(paramsSearch);
+            entidad.UsuarioId = userId;
             Expression<Func<CreditoUsuario, bool>> filtro = entidad.ToFilterExpression<CreditoUsuario>();
             creditoUsuarioBuscado = await _iUnitOfWork.Repository<CreditoUsuario>().ConsultarUnoAsync(filtro);
             return creditoUsuarioBuscado == null ? creditoUsuario : creditoUsuarioBuscado;
         }
 
         /// <inheritdoc />
-        public async Task<CreditoUsuario> CreateAsync(ParamsCrearActualizarCreditoUsuario paramsCreateUpdate)
+        public async Task<CreditoUsuario> CreateAsync(ParamsCrearActualizarCreditoUsuario paramsCreateUpdate, int? userId = null)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
                 await ValidarCamposCrearActualizarCreditoUsuario(paramsCreateUpdate);
                 CreditoUsuario listaEntidad = new CreditoUsuario();
                 CreditoUsuario createUpdateEntidad = _iMapper.Map<CreditoUsuario>(paramsCreateUpdate);
+                createUpdateEntidad.UsuarioId = userId;
 
                 if (paramsCreateUpdate.CreditoUsuarioId != null && paramsCreateUpdate.CreditoUsuarioId > 0)
                 {
@@ -100,12 +97,8 @@
 
                 await _iUnitOfWork.SaveChangesAsync();
 
-                // Llama el servicio ya creado para consultar la entidad completa
-                ParamsConsultarCreditoUsuario parametrosFiltrar = new ParamsConsultarCreditoUsuario();
-                listaEntidad = await GetWithParamsAsync(parametrosFiltrar);
-
                 scope.Complete();
-                return listaEntidad;
+                return createUpdateEntidad;
             }
         }
 
@@ -122,15 +115,6 @@
             CreditoUsuario Resultado = new CreditoUsuario();
             ParamsConsultarCreditoUsuario Existente = new ParamsConsultarCreditoUsuario();
 
-            if (parametrosCrearActualizarCreditoUsuario.UsuarioId == null || parametrosCrearActualizarCreditoUsuario.UsuarioId <= 0)
-            {
-                errores += string.Format(DefaultMessages.FieldRequiredWithName, "usuario");
-            }
-            else
-            {
-                errores += await _iSeguridadService.ConsultarUsuarioExistente(parametrosCrearActualizarCreditoUsuario.UsuarioId);
-            }
-
             if (parametrosCrearActualizarCreditoUsuario.CreditoUsuarioId != null && parametrosCrearActualizarCreditoUsuario.CreditoUsuarioId > 0)
             {
                 // Valida si la cuenta a actualizar si existe o no
@@ -139,33 +123,6 @@
                 if (Resultado == null || Resultado.CreditoUsuarioId != parametrosCrearActualizarCreditoUsuario.CreditoUsuarioId)
                 {
                     errores += string.Format(DefaultMessages.DataNotFound, "La cuenta ingresada");
-                }
-                else
-                {
-                    if (parametrosCrearActualizarCreditoUsuario.UsuarioId != null && parametrosCrearActualizarCreditoUsuario.UsuarioId > 0)
-                    {
-                        // Valida si al usuario le pertenece o no esa cuenta a la que se le asignará los creditos
-                        Existente.UsuarioId = parametrosCrearActualizarCreditoUsuario.UsuarioId;
-                        Resultado = await GetWithParamsAsync(Existente);
-                        if (Resultado == null)
-                        {
-                            errores += "Al usuario no le pertenece la cuenta a la cual se le asignará los creditos.";
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (parametrosCrearActualizarCreditoUsuario.UsuarioId != null && parametrosCrearActualizarCreditoUsuario.UsuarioId > 0)
-                {
-                    // Valida si el usuario ya tiene una cuenta registrada
-                    Existente.CreditoUsuarioId = null;
-                    Existente.UsuarioId = parametrosCrearActualizarCreditoUsuario.UsuarioId;
-                    Resultado = await GetWithParamsAsync(Existente);
-                    if (Resultado != null && Resultado.CreditoUsuarioCreditos > 0)
-                    {
-                        errores += "El usuario ya tiene una cuenta de creditos asociada.";
-                    }
                 }
             }
 

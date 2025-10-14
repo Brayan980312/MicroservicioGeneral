@@ -40,7 +40,7 @@
         #region Métodos
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Parametros>> GetWithParamsAsync(ParamsConsultarParametros paramsSearch)
+        public async Task<IEnumerable<Parametros>> GetWithParamsAsync(ParamsConsultarParametros paramsSearch, int? userId = null)
         {
             Parametros parametros = _iMapper.Map<Parametros>(paramsSearch);
             Expression<Func<Parametros, bool>> filtro = parametros.ToFilterExpression<Parametros>();

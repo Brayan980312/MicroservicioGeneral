@@ -101,7 +101,7 @@
                 {
                     Status = (int)HttpStatusCode.UnprocessableEntity,
                     Type = "Validation",
-                    Title = "Validation",
+                    Title = "Validación de negocio",
                     Detail = e.Message
                 };
 

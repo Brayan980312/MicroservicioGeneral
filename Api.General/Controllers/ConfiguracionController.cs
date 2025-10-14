@@ -9,7 +9,6 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
 
-    //[Authorize]
     [Route("api/[controller]")]
     [ApiController]
 
@@ -22,6 +21,11 @@
 
         /// <summary>Inyeccion de convertidor o resolutor de modelos.</summary>
         private readonly IMapper _iMapper;
+
+        /// <summary>
+        /// Obtiene una instancia del servicio de configuración a través de la unidad de trabajo de servicios.
+        /// </summary>
+        private IConfiguracionService ConfiguracionService => _iServiceUnitOfWork.GetService<IConfiguracionService>();
 
         #endregion Variables
 
@@ -38,29 +42,30 @@
 
         #endregion
 
+        #region EndPoints
         /// <summary>Endpoint para actualizar un parametro del sistema.</summary>
         /// <param name="parametrosActualizarParametro">Parametros de entrada para realizar la operacion.</param>
         /// <returns>Lista de ParametrosDto con todos los parametros del sistema.</returns>
+        [Authorize(Roles = "Administrador")]
         [HttpPost]
         [Route("ActualizarParametro")]
         public async Task<ActionResult<List<ParametrosDto>>> ActualizarParametro(ParamsActualizarParametros parametrosActualizarParametro)
         {
-            IConfiguracionService parametrosService = _iServiceUnitOfWork.GetService<IConfiguracionService>();
-
-            IEnumerable<Parametros> listadoParametros = await parametrosService.UpdateAsync(parametrosActualizarParametro);
+            IEnumerable<Parametros> listadoParametros = await ConfiguracionService.UpdateAsync(parametrosActualizarParametro);
             return Ok(_iMapper.Map<List<ParametrosDto>>(listadoParametros));
         }
 
         /// <summary>Endpoint para consultar los parametros del sistema.</summary>
         /// <param name="parametrosConsultarParametros">Parametros de entrada para realizar la operacion.</param>
         /// <returns>Lista de ParametrosDto con todos los parametros del sistema.</returns>
+        [Authorize(Roles = "Administrador,Cliente")]
         [HttpGet("ConsultarParametros")]
         public async Task<ActionResult<List<ParametrosDto>>> ConsultarParametros([FromQuery] ParamsConsultarParametros parametrosConsultarParametros)
         {
-            IConfiguracionService parametrosService = _iServiceUnitOfWork.GetService<IConfiguracionService>();
-
-            IEnumerable<Parametros> listadoParametros = await parametrosService.GetWithParamsAsync(parametrosConsultarParametros);
+            IEnumerable<Parametros> listadoParametros = await ConfiguracionService.GetWithParamsAsync(parametrosConsultarParametros);
             return Ok(_iMapper.Map<List<ParametrosDto>>(listadoParametros));
         }
+        #endregion
+
     }
 }
