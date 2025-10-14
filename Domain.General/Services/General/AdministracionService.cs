@@ -40,7 +40,7 @@
         #region Métodos
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Pais>> GetWithParamsAsync(ParamsConsultarPais paramsSearch)
+        public async Task<IEnumerable<Pais>> GetWithParamsAsync(ParamsConsultarPais paramsSearch, int? userId = null)
         {
             Pais entidad = _iMapper.Map<Pais>(paramsSearch);
             Expression<Func<Pais, bool>> filtro = entidad.ToFilterExpression<Pais>();
@@ -48,7 +48,7 @@
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Pais>> CreateAsync(ParamsCrearActualizarPais paramsCreateUpdate)
+        public async Task<IEnumerable<Pais>> CreateAsync(ParamsCrearActualizarPais paramsCreateUpdate, int? userId = null)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
@@ -79,7 +79,7 @@
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Ciudad>> GetWithParamsAsync(ParamsConsultarCiudad paramsSearch)
+        public async Task<IEnumerable<Ciudad>> GetWithParamsAsync(ParamsConsultarCiudad paramsSearch, int? userId = null)
         {
             Ciudad entidad = _iMapper.Map<Ciudad>(paramsSearch);
             Expression<Func<Ciudad, bool>> filtro = entidad.ToFilterExpression<Ciudad>();
@@ -87,7 +87,7 @@
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Ciudad>> CreateAsync(ParamsCrearActualizarCiudad paramsCreateUpdate)
+        public async Task<IEnumerable<Ciudad>> CreateAsync(ParamsCrearActualizarCiudad paramsCreateUpdate, int? userId = null)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
@@ -118,7 +118,7 @@
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<MetodoPago>> GetWithParamsAsync(ParamsConsultarMetodoPago paramsSearch)
+        public async Task<IEnumerable<MetodoPago>> GetWithParamsAsync(ParamsConsultarMetodoPago paramsSearch, int? userId = null)
         {
             MetodoPago entidad = _iMapper.Map<MetodoPago>(paramsSearch);
             Expression<Func<MetodoPago, bool>> filtro = entidad.ToFilterExpression<MetodoPago>();
@@ -126,7 +126,7 @@
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<MetodoPago>> CreateAsync(ParamsCrearActualizarMetodoPago paramsCreateUpdate)
+        public async Task<IEnumerable<MetodoPago>> CreateAsync(ParamsCrearActualizarMetodoPago paramsCreateUpdate, int? userId = null)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
@@ -224,56 +224,83 @@
 
             if (parametrosCrearActualizarCiudad.CiudadId != null && parametrosCrearActualizarCiudad.CiudadId > 0)
             {
-                // Valida si el Id del pais existe
+                // Valida si el Id de la ciudad existe
                 if (Resultado.Where(x => x.CiudadId == parametrosCrearActualizarCiudad.CiudadId).Count() == 0)
                 {
                     errores += string.Format(DefaultMessages.DataNotFound, "La ciudad");
                 }
             }
 
-            if (string.IsNullOrEmpty(parametrosCrearActualizarCiudad.CiudadNombre))
+            // Valida nombre ciudad
+            if (string.IsNullOrEmpty(errores))
             {
-                errores += string.Format(DefaultMessages.FieldRequiredWithName, "nombre");
-            }
-            else
-            {
-                // Valida si el nombre del pais ya existe en el sistema
-                if (Resultado.Any(x => x.CiudadNombre.Trim().ToUpper() == parametrosCrearActualizarCiudad.CiudadNombre.Trim().ToUpper() &&
-                                                                    x.CiudadId != parametrosCrearActualizarCiudad.CiudadId))
+                if (string.IsNullOrEmpty(parametrosCrearActualizarCiudad.CiudadNombre))
                 {
-                    errores += string.Format(DefaultMessages.AlreadyExistsData, $"el país '{parametrosCrearActualizarCiudad.CiudadNombre.Trim()}'");
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "nombre");
+                }
+                else
+                {
+                    // Valida si el nombre del pais ya existe en el sistema
+                    if (Resultado.Any(x => x.CiudadNombre.Trim().ToUpper() == parametrosCrearActualizarCiudad.CiudadNombre.Trim().ToUpper() &&
+                                                                        x.CiudadId != parametrosCrearActualizarCiudad.CiudadId))
+                    {
+                        errores += string.Format(DefaultMessages.AlreadyExistsData, $"la ciudad '{parametrosCrearActualizarCiudad.CiudadNombre.Trim()}'");
+                    }
                 }
             }
 
-            if (string.IsNullOrEmpty(parametrosCrearActualizarCiudad.CiudadNomenclatura))
+            // Valida nomenclatura de la ciudad
+            if (string.IsNullOrEmpty(errores))
             {
-                errores += string.Format(DefaultMessages.FieldRequiredWithName, "nomenclatura");
-            }
-            else
-            {
-                // Valida si la nomenclatura del pais ya existe en el sistema
-                if (Resultado.Any(x => x.CiudadNomenclatura.Trim().ToUpper() == parametrosCrearActualizarCiudad.CiudadNomenclatura.Trim().ToUpper() &&
-                                                                    x.CiudadId != parametrosCrearActualizarCiudad.CiudadId))
+                if (string.IsNullOrEmpty(parametrosCrearActualizarCiudad.CiudadNomenclatura))
                 {
-                    errores += string.Format(DefaultMessages.AlreadyExistsData,
-                        $"la nomenclatura '{parametrosCrearActualizarCiudad.CiudadNomenclatura.Trim()}'");
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "nomenclatura");
+                }
+                else
+                {
+                    // Valida si la nomenclatura del pais ya existe en el sistema
+                    if (Resultado.Any(x => x.CiudadNomenclatura.Trim().ToUpper() == parametrosCrearActualizarCiudad.CiudadNomenclatura.Trim().ToUpper() &&
+                                                                        x.CiudadId != parametrosCrearActualizarCiudad.CiudadId))
+                    {
+                        errores += string.Format(DefaultMessages.AlreadyExistsData,
+                            $"la nomenclatura '{parametrosCrearActualizarCiudad.CiudadNomenclatura.Trim()}'");
+                    }
                 }
             }
 
-            if (parametrosCrearActualizarCiudad.PaisId == null || parametrosCrearActualizarCiudad.PaisId == 0)
+            // Valida pais
+            if (string.IsNullOrEmpty(errores))
             {
-                errores += string.Format(DefaultMessages.FieldRequiredWithName, "país");
+                if (parametrosCrearActualizarCiudad.PaisId == null || parametrosCrearActualizarCiudad.PaisId == 0)
+                {
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "país");
+                }
+                else
+                {
+                    IEnumerable<Pais> ResultadoPais = new List<Pais>();
+                    ParamsConsultarPais ExistentesPais = new ParamsConsultarPais();
+                    ExistentesPais.PaisId = parametrosCrearActualizarCiudad.PaisId;
+                    ResultadoPais = await GetWithParamsAsync(ExistentesPais);
+
+                    if (ResultadoPais.Count() == 0)
+                    {
+                        errores += string.Format(DefaultMessages.DataNotFound, "El país");
+                    }
+                }
             }
-            else
+
+            // Valida el estado del pais
+            if (string.IsNullOrEmpty(errores))
             {
                 IEnumerable<Pais> ResultadoPais = new List<Pais>();
                 ParamsConsultarPais ExistentesPais = new ParamsConsultarPais();
                 ExistentesPais.PaisId = parametrosCrearActualizarCiudad.PaisId;
+                ExistentesPais.PaisEstado = true;
                 ResultadoPais = await GetWithParamsAsync(ExistentesPais);
 
                 if (ResultadoPais.Count() == 0)
                 {
-                    errores += string.Format(DefaultMessages.DataNotFound, "El país");
+                    errores += string.Format(DefaultMessages.NotActiveData, "El país");
                 }
             }
 

@@ -49,7 +49,7 @@
         #region Métodos
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Avion>> GetWithParamsAsync(ParamsConsultarAvion paramsSearch)
+        public async Task<IEnumerable<Avion>> GetWithParamsAsync(ParamsConsultarAvion paramsSearch, int? userId = null)
         {
             Avion entidad = _iMapper.Map<Avion>(paramsSearch);
             Expression<Func<Avion, bool>> filtro = entidad.ToFilterExpression<Avion>();
@@ -57,7 +57,7 @@
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Avion>> CreateAsync(ParamsCrearActualizarAvion paramsCreateUpdate)
+        public async Task<IEnumerable<Avion>> CreateAsync(ParamsCrearActualizarAvion paramsCreateUpdate, int? userId = null)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
@@ -88,7 +88,7 @@
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<AsientoAvion>> GetWithParamsAsync(ParamsConsultarAsientoAvion paramsSearch)
+        public async Task<IEnumerable<AsientoAvion>> GetWithParamsAsync(ParamsConsultarAsientoAvion paramsSearch, int? userId = null)
         {
             AsientoAvion entidad = _iMapper.Map<AsientoAvion>(paramsSearch);
             Expression<Func<AsientoAvion, bool>> filtro = entidad.ToFilterExpression<AsientoAvion>();
@@ -96,7 +96,7 @@
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<AsientoAvion>> CreateAsync(ParamsCrearActualizarAsientoAvion paramsCreateUpdate)
+        public async Task<IEnumerable<AsientoAvion>> CreateAsync(ParamsCrearActualizarAsientoAvion paramsCreateUpdate, int? userId = null)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
@@ -147,35 +147,59 @@
                 }
             }
 
-            if (string.IsNullOrEmpty(paramsValidate.AvionNombre))
+            // Validación nombre avión
+            if (string.IsNullOrEmpty(errores))
             {
-                errores += string.Format(DefaultMessages.FieldRequiredWithName, "nombre");
-            }
-            else
-            {
-                // Valida si el nombre del avion ya existe en el sistema
-                if (Resultado.Any(x => x.AvionNombre.Trim().ToUpper() == paramsValidate.AvionNombre.Trim().ToUpper() &&
-                                                                    x.AvionId != paramsValidate.AvionId))
+                if (string.IsNullOrEmpty(paramsValidate.AvionNombre))
                 {
-                    errores += string.Format(DefaultMessages.AlreadyExistsData, $"el avion '{paramsValidate.AvionNombre.Trim()}'");
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "nombre");
+                }
+                else
+                {
+                    // Valida si el nombre del avion ya existe en el sistema
+                    if (Resultado.Any(x => x.AvionNombre.Trim().ToUpper() == paramsValidate.AvionNombre.Trim().ToUpper() &&
+                                                                        x.AvionId != paramsValidate.AvionId))
+                    {
+                        errores += string.Format(DefaultMessages.AlreadyExistsData, $"el avion '{paramsValidate.AvionNombre.Trim()}'");
+                    }
                 }
             }
 
-            if (paramsValidate.CiudadId == null || paramsValidate.CiudadId == 0)
+            // Validación ciudad del avión
+            if (string.IsNullOrEmpty(errores))
             {
-                errores += string.Format(DefaultMessages.FieldRequiredWithName, "ciudad");
+                if (paramsValidate.CiudadId == null || paramsValidate.CiudadId == 0)
+                {
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "ciudad");
+                }
+                else
+                {
+                    // Valida si la ciudad ingresada existe
+                    IEnumerable<Ciudad> ciudades = new List<Ciudad>();
+                    ParamsConsultarCiudad paramsConsultarCiudad = new ParamsConsultarCiudad();
+                    paramsConsultarCiudad.CiudadId = paramsValidate.CiudadId;
+                    ciudades = await _iAdministracionService.GetWithParamsAsync(paramsConsultarCiudad);
+
+                    if (ciudades.Count() == 0)
+                    {
+                        errores += string.Format(DefaultMessages.DataNotFound, "La ciudad");
+                    }
+                }
             }
-            else
+
+            // Validación estado de la ciudad del avión
+            if (string.IsNullOrEmpty(errores))
             {
-                // Valida si la ciudad ingresada existe
+                // Valida si la ciudad ingresada está activa en el sistema
                 IEnumerable<Ciudad> ciudades = new List<Ciudad>();
                 ParamsConsultarCiudad paramsConsultarCiudad = new ParamsConsultarCiudad();
                 paramsConsultarCiudad.CiudadId = paramsValidate.CiudadId;
+                paramsConsultarCiudad.CiudadEstado = true;
                 ciudades = await _iAdministracionService.GetWithParamsAsync(paramsConsultarCiudad);
 
                 if (ciudades.Count() == 0)
                 {
-                    errores += string.Format(DefaultMessages.DataNotFound, "La ciudad");
+                    errores += string.Format(DefaultMessages.NotActiveData, "La ciudad");
                 }
             }
 
@@ -204,50 +228,75 @@
                 }
             }
 
-            if (paramsValidate.AvionId == null || paramsValidate.AvionId == 0)
+            // Validacion del avión
+            if (string.IsNullOrEmpty(errores))
             {
-                errores += string.Format(DefaultMessages.DataNotFound, "El avión");
+                if (paramsValidate.AvionId == null || paramsValidate.AvionId == 0)
+                {
+                    errores += string.Format(DefaultMessages.DataNotFound, "El avión");
+                }
+                else
+                {
+                    // Valida que el avión si exista en el sistema
+                    IEnumerable<Avion> aviones = new List<Avion>();
+                    ParamsConsultarAvion paramsConsultarAvion = new ParamsConsultarAvion();
+                    paramsConsultarAvion.AvionId = paramsValidate.AvionId;
+                    aviones = await GetWithParamsAsync(paramsConsultarAvion);
+
+                    if (aviones.Count() == 0)
+                    {
+                        errores += string.Format(DefaultMessages.DataNotFound, "El avión");
+                    }
+                }
             }
-            else
+
+            // Validacion del estado del avión
+            if (string.IsNullOrEmpty(errores))
             {
-                // Valida que el avión si exista en el sistema
+                // Valida que el avión esté activo en el sistema
                 IEnumerable<Avion> aviones = new List<Avion>();
                 ParamsConsultarAvion paramsConsultarAvion = new ParamsConsultarAvion();
                 paramsConsultarAvion.AvionId = paramsValidate.AvionId;
+                paramsConsultarAvion.AvionEstado = true;
                 aviones = await GetWithParamsAsync(paramsConsultarAvion);
 
                 if (aviones.Count() == 0)
                 {
-                    errores += string.Format(DefaultMessages.DataNotFound, "El avión");
+                    errores += string.Format(DefaultMessages.NotActiveData, "El avión");
                 }
             }
 
-            if (string.IsNullOrEmpty(paramsValidate.AsientoAvionNombre))
-            {
-                errores += string.Format(DefaultMessages.FieldRequiredWithName, "nombre");
-            }
-            else
-            {
-                // Valida si el nombre del asiento ya lo tiene el avión al que se le va a asociar
-                if (Resultado.Any(x => x.AsientoAvionNombre.Trim().ToUpper() == paramsValidate.AsientoAvionNombre.Trim().ToUpper() &&
-                                                                    x.AsientoAvionId != paramsValidate.AsientoAvionId &&
-                                                                    x.AvionId == paramsValidate.AvionId))
+            // Validación del nombre del asiento del avión
+            if (string.IsNullOrEmpty(errores)) {
+                if (string.IsNullOrEmpty(paramsValidate.AsientoAvionNombre))
                 {
-                    errores += string.Format(DefaultMessages.AlreadyExistsData, $"el asiento '{paramsValidate.AsientoAvionNombre.Trim()}' asociado al avión");
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "nombre");
+                }
+                else
+                {
+                    // Valida si el nombre del asiento ya lo tiene el avión al que se le va a asociar
+                    if (Resultado.Any(x => x.AsientoAvionNombre.Trim().ToUpper() == paramsValidate.AsientoAvionNombre.Trim().ToUpper() &&
+                                                                        x.AsientoAvionId != paramsValidate.AsientoAvionId &&
+                                                                        x.AvionId == paramsValidate.AvionId))
+                    {
+                        errores += string.Format(DefaultMessages.AlreadyExistsData, $"el asiento '{paramsValidate.AsientoAvionNombre.Trim()}' asociado al avión");
+                    }
                 }
             }
 
-            if (paramsValidate.AsientoAvionVIP == true && (paramsValidate.AsientoAvionVIPPorcentaje == null || paramsValidate.AsientoAvionVIPPorcentaje == 0))
-            {
-                errores += "Si el asiento es VIP, debe asignar un porcentaje adicional.";
-            }
-            else if (paramsValidate.AsientoAvionVIP == true && (paramsValidate.AsientoAvionVIPPorcentaje != null && paramsValidate.AsientoAvionVIPPorcentaje > 0))
-            {
-                // Valida que el porcentaje del asiento VIP esté comprendiendo entre ciertos valores
-                if (paramsValidate.AsientoAvionVIPPorcentaje > 100 || paramsValidate.AsientoAvionVIPPorcentaje <= 0)
+            // Validación asiento VIP
+            if (string.IsNullOrEmpty(errores)) {
+                if (paramsValidate.AsientoAvionVIP == true && (paramsValidate.AsientoAvionVIPPorcentaje == null || paramsValidate.AsientoAvionVIPPorcentaje == 0))
                 {
-                    errores += string.Format(DefaultMessages.RangeError, "el porcentaje","0","100");
-                    
+                    errores += "Si el asiento es VIP, debe asignar un porcentaje adicional.";
+                }
+                else if (paramsValidate.AsientoAvionVIP == true && (paramsValidate.AsientoAvionVIPPorcentaje != null && paramsValidate.AsientoAvionVIPPorcentaje > 0))
+                {
+                    // Valida que el porcentaje del asiento VIP esté comprendiendo entre ciertos valores
+                    if (paramsValidate.AsientoAvionVIPPorcentaje > 100 || paramsValidate.AsientoAvionVIPPorcentaje <= 0)
+                    {
+                        errores += string.Format(DefaultMessages.RangeError, "El porcentaje", "0.01...", "100");
+                    }
                 }
             }
 

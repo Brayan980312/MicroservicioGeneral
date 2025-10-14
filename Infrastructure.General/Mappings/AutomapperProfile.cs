@@ -12,6 +12,8 @@
     using Domain.General.CustomEntities.Creditos;
     using Domain.General.DTOs.Avion;
     using Domain.General.CustomEntities.Avion;
+    using Domain.General.DTOs.Vuelo;
+    using Domain.General.CustomEntities.Vuelo;
 
 
     /// <summary>Configura los mapeos entre las entidades de dominio general y los objetos de transferencia de datos (DTOs/Params) mediante AutoMapper.
@@ -76,6 +78,47 @@
             CreateMap<AsientoAvion, ParamsCrearActualizarAsientoAvion>().ReverseMap();
             /// <summary>Mapea la entidad <see cref="AsientoAvion"/> a <see cref="ParamsConsultarAsientoAvion"/> y viceversa.</summary>
             CreateMap<AsientoAvion, ParamsConsultarAsientoAvion>().ReverseMap();
+
+
+
+
+            /// <summary>Mapea la entidad <see cref="Vuelo"/> a <see cref="VueloDto"/> y viceversa.</summary>
+            CreateMap<Vuelo, VueloDto>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="Vuelo"/> a <see cref="ParamsCrearActualizarVuelo"/> y viceversa.</summary>
+            CreateMap<Vuelo, ParamsCrearActualizarVuelo>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="Vuelo"/> a <see cref="ParamsConsultarVuelo"/> y viceversa.</summary>
+            CreateMap<Vuelo, ParamsConsultarVuelo>().ReverseMap();
+
+            /// <summary>Mapea la entidad <see cref="VueloHistorico"/> a <see cref="VueloHistoricoDto"/> y viceversa.</summary>
+            CreateMap<VueloHistorico, VueloHistoricoDto>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="VueloHistorico"/> a <see cref="ParamsCrearVueloHistorico"/> y viceversa.</summary>
+            CreateMap<VueloHistorico, ParamsCrearVueloHistorico>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="VueloHistorico"/> a <see cref="ParamsConsultarVueloHistorico"/> y viceversa.</summary>
+            CreateMap<VueloHistorico, ParamsConsultarVueloHistorico>().ReverseMap();
+
+            /// <summary>Mapea la entidad <see cref="Compra"/> a <see cref="CompraDto"/> y viceversa.</summary>
+            CreateMap<Compra, CompraDto>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="Compra"/> a <see cref="ParamsCrearActualizarCompra"/> y viceversa.</summary>
+            CreateMap<Compra, ParamsCrearActualizarCompra>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="Compra"/> a <see cref="ParamsConsultarCompra"/> y viceversa.</summary>
+            CreateMap<Compra, ParamsConsultarCompra>().ReverseMap();
+
+            /// <summary>Mapea la entidad <see cref="CompraHistorico"/> a <see cref="CompraHistoricoDto"/> y viceversa.</summary>
+            CreateMap<CompraHistorico, CompraHistoricoDto>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="Compra"/> a <see cref="ParamsConsultarCompra"/> y viceversa.</summary>
+            CreateMap<CompraHistorico, ParamsConsultarCompraHistorico>().ReverseMap();
+
+            /// <summary>Mapea la entidad <see cref="CompraDetalle"/> a <see cref="CompraDetalleDto"/> y viceversa.</summary>
+            CreateMap<CompraDetalle, CompraDetalleDto>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="CompraDetalle"/> a <see cref="ParamsCrearActualizarCompraDetalle"/> y viceversa.</summary>
+            CreateMap<CompraDetalle, ParamsCrearActualizarCompraDetalle>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="CompraDetalle"/> a <see cref="ParamsConsultarCompraDetalle"/> y viceversa.</summary>
+            CreateMap<CompraDetalle, ParamsConsultarCompraDetalle>().ReverseMap();
+
+            /// <summary>Mapea la entidad <see cref="CompraDetalleHistorico"/> a <see cref="CompraDetalleHistoricoDto"/> y viceversa.</summary>
+            CreateMap<CompraDetalleHistorico, CompraDetalleHistoricoDto>().ReverseMap();
+            /// <summary>Mapea la entidad <see cref="CompraDetalleHistorico"/> a <see cref="ParamsConsultarCompraDetalleHistorico"/> y viceversa.</summary>
+            CreateMap<CompraDetalleHistorico, ParamsConsultarCompraDetalleHistorico>().ReverseMap();
 
         }
     }

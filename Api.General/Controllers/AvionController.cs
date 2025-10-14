@@ -11,7 +11,6 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
 
-    //[Authorize]
     [Route("api/[controller]")]
     [ApiController]
 
@@ -24,6 +23,11 @@
 
         /// <summary>Inyeccion de convertidor o resolutor de modelos.</summary>
         private readonly IMapper _iMapper;
+
+        /// <summary>
+        /// Obtiene una instancia del servicio de avion a través de la unidad de trabajo de servicios.
+        /// </summary>
+        private IAvionService AvionService => _iServiceUnitOfWork.GetService<IAvionService>();
 
         #endregion Variables
 
@@ -40,54 +44,52 @@
 
         #endregion
 
+        #region EndPoints
         /// <summary>Endpoint para crear o actualizar la entidad.</summary>
         /// <param name="parametrosCrearActualizarEntidad">Parametros de entrada para realizar la operacion.</param>
         /// <returns>Lista Dto con toda la entidad del sistema.</returns>
+        [Authorize(Roles = "Administrador")]
         [HttpPost]
         [Route("CrearActualizarAvion")]
         public async Task<ActionResult<List<AvionDto>>> CrearActualizarAvion(ParamsCrearActualizarAvion parametrosCrearActualizarEntidad)
         {
-            IAvionService Service = _iServiceUnitOfWork.GetService<IAvionService>();
-
-            IEnumerable<Avion> listadoEntidad = await Service.CreateAsync(parametrosCrearActualizarEntidad);
+            IEnumerable<Avion> listadoEntidad = await AvionService.CreateAsync(parametrosCrearActualizarEntidad);
             return Ok(_iMapper.Map<List<AvionDto>>(listadoEntidad));
         }
 
         /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
         /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
         /// <returns>Lista de Dto con toda la entidad del sistema.</returns>
+        [Authorize(Roles = "Administrador")]
         [HttpGet("ConsultarAvion")]
         public async Task<ActionResult<List<AvionDto>>> ConsultarAvion([FromQuery] ParamsConsultarAvion parametrosConsultarEntidad)
         {
-            IAvionService Service = _iServiceUnitOfWork.GetService<IAvionService>();
-
-            IEnumerable<Avion> listadoEntidad = await Service.GetWithParamsAsync(parametrosConsultarEntidad);
+            IEnumerable<Avion> listadoEntidad = await AvionService.GetWithParamsAsync(parametrosConsultarEntidad);
             return Ok(_iMapper.Map<List<AvionDto>>(listadoEntidad));
         }
 
         /// <summary>Endpoint para crear o actualizar la entidad.</summary>
         /// <param name="parametrosCrearActualizarEntidad">Parametros de entrada para realizar la operacion.</param>
         /// <returns>Lista Dto con toda la entidad del sistema.</returns>
+        [Authorize(Roles = "Administrador")]
         [HttpPost]
         [Route("CrearActualizarAsientoAvion")]
         public async Task<ActionResult<List<AsientoAvionDto>>> CrearActualizarAsientoAvion(ParamsCrearActualizarAsientoAvion parametrosCrearActualizarEntidad)
         {
-            IAvionService Service = _iServiceUnitOfWork.GetService<IAvionService>();
-
-            IEnumerable<AsientoAvion> listadoEntidad = await Service.CreateAsync(parametrosCrearActualizarEntidad);
+            IEnumerable<AsientoAvion> listadoEntidad = await AvionService.CreateAsync(parametrosCrearActualizarEntidad);
             return Ok(_iMapper.Map<List<AsientoAvionDto>>(listadoEntidad));
         }
 
         /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
         /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
         /// <returns>Lista de Dto con toda la entidad del sistema.</returns>
+        [Authorize(Roles = "Administrador,Cliente")]
         [HttpGet("ConsultarAsientoAvion")]
         public async Task<ActionResult<List<AsientoAvionDto>>> ConsultarAsientoAvion([FromQuery] ParamsConsultarAsientoAvion parametrosConsultarEntidad)
         {
-            IAvionService Service = _iServiceUnitOfWork.GetService<IAvionService>();
-
-            IEnumerable<AsientoAvion> listadoEntidad = await Service.GetWithParamsAsync(parametrosConsultarEntidad);
+            IEnumerable<AsientoAvion> listadoEntidad = await AvionService.GetWithParamsAsync(parametrosConsultarEntidad);
             return Ok(_iMapper.Map<List<AsientoAvionDto>>(listadoEntidad));
         }
+        #endregion
     }
 }

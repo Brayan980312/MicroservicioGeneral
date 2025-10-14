@@ -11,5 +11,30 @@
             Validacion = 422,
             Error = 500
         }
+
+        /// <summary>
+        /// Estados de un vuelo.
+        /// </summary>
+        public enum EstadoVuelo
+        {
+            Programado = 1,
+            Disponible = 2,
+            Cerrado = 3,
+            EnEmbarque = 4,
+            Despegado = 5,
+            Aterrizado = 6,
+            Finalizado = 7,
+            Cancelado = 8,
+        }
+
+        /// <summary>
+        /// Estados de la compra de un vuelo.
+        /// </summary>
+        public enum EstadoCompra
+        {
+            Comprado = 1,
+            Embolsado = 2,
+            Cancelado = 3
+        }
     }
 }

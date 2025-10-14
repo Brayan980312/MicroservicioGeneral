@@ -1,9 +1,12 @@
 using Api.General.Middlewares;
 using Infrastructure.General.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Net;
 using System.Text;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -101,6 +104,44 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtSettings["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                // Evita que el sistema genere la respuesta por defecto
+                context.HandleResponse();
+
+                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                context.Response.ContentType = "application/json";
+
+                var problem = new ProblemDetails
+                {
+                    Status = (int)HttpStatusCode.Unauthorized,
+                    Type = "Unauthorized",
+                    Title = "No autorizado",
+                    Detail = "No tiene permisos para acceder a este recurso o su sesión ha expirado."
+                };
+
+                var json = JsonSerializer.Serialize(problem);
+                await context.Response.WriteAsync(json);
+            },
+            OnForbidden = async context =>
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                context.Response.ContentType = "application/json";
+
+                var problem = new ProblemDetails
+                {
+                    Status = (int)HttpStatusCode.Forbidden,
+                    Type = "Forbidden",
+                    Title = "Acceso denegado",
+                    Detail = "No tiene permisos suficientes para realizar esta acción."
+                };
+
+                var json = JsonSerializer.Serialize(problem);
+                await context.Response.WriteAsync(json);
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -132,7 +173,7 @@ app.UseSwaggerUI(c =>
 
 app.UseMiddleware<RequestAuditingMiddleware>();
 
-//app.UseAuthentication();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
