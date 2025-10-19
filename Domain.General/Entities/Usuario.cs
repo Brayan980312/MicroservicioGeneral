@@ -1,6 +1,7 @@
 ﻿namespace Domain.General.Entities
 {
-    public class Usuario
+    using Utilitarios.Entities;
+    public class Usuario : EntidadBase
     {
         /// <summary>Identificador único del Usuario.</summary>
         public int? UsuarioId { get; set; }

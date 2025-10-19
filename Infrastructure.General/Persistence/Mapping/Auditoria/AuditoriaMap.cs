@@ -13,9 +13,7 @@
         /// <param name="builder">Entidad a configurar.</param>
         public void Configure(EntityTypeBuilder<Auditoria> builder)
         {
-            builder.ToTable("Auditoria", "Auditoria");
-
-            builder.HasComment("Registra las acciones realizadas en la API para fines de auditoría y trazabilidad.");
+            builder.ToTable("Auditoria", "Auditoria", t => t.HasComment("Registra las acciones realizadas en la API para fines de auditoría y trazabilidad."));
 
             builder.HasKey(e => e.AuditoriaId);
 

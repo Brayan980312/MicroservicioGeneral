@@ -15,9 +15,7 @@
         /// <param name="builder">Entidad a Configurar.</param>
         public void Configure(EntityTypeBuilder<Avion> builder)
         {
-            builder.ToTable("Avion", "Avion");
-
-            builder.HasComment("Almacena la información de los aviones registrados en el sistema, incluyendo su ciudad base y estado activo/inactivo.");
+            builder.ToTable("Avion", "Avion", t => t.HasComment("Almacena la información de los aviones registrados en el sistema, incluyendo su ciudad base y estado activo/inactivo."));
 
             builder.HasKey(e => e.AvionId);
 
@@ -41,11 +39,11 @@
                 .IsRequired()
                 .HasComment("Estado del avión. Valor 1 = Activo, 0 = Inactivo.");
 
-            builder.HasOne<Ciudad>()
+            builder.HasOne(e => e.Ciudad)
                 .WithMany()
                 .HasForeignKey(e => e.CiudadId)
                 .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("FK_Avion_Ciudad");
+                .HasConstraintName("FK_Avion_Ciudad_CiudadId");
         }
 
         #endregion

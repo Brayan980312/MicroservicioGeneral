@@ -1,5 +1,6 @@
 ﻿namespace Domain.General.Interfaces.UnitOfWork
 {
+    using Domain.General.Interfaces.Repository;
     using System;
     using System.Threading.Tasks;
     using Utilitarios.Contracts;
@@ -16,6 +17,18 @@
         /// <typeparam name="T">Tipo de entidad que hereda de <see cref="EntidadBase"/>.</typeparam>
         /// <returns>Una instancia de <see cref="ICrudSqlRepositorio{T}"/> asociada a la entidad <typeparamref name="T"/>.</returns>
         ICrudSqlRepositorio<T> Repository<T>() where T : EntidadBase;
+
+        /// <summary>Instancia del repositorio de DLCiudad</summary>
+        IDLCiudad DLCiudadPersonalizado { get; }
+
+        /// <summary>Instancia del repositorio de DLAvion</summary>
+        IDLAvion DLAvionPersonalizado { get; }
+
+        /// <summary>Instancia del repositorio de DLVuelo</summary>
+        IDLVuelo DLVueloPersonalizado { get; }
+
+        /// <summary>Instancia del repositorio de DLMetricas</summary>
+        IDLMetricas DLMetricasPersonalizado { get; }
 
         #endregion
 

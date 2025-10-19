@@ -12,9 +12,7 @@
         /// <param name="builder">Entidad a Configurar.</param>
         public void Configure(EntityTypeBuilder<Pais> builder)
         {
-            builder.ToTable("Pais", "Administracion");
-
-            builder.HasComment("Almacena la información de los países registrados en el sistema, incluyendo su nomenclatura, si son internacionales y su estado activo/inactivo.");
+            builder.ToTable("Pais", "Administracion", t => t.HasComment("Almacena la información de los países registrados en el sistema, incluyendo su nomenclatura, si son internacionales y su estado activo/inactivo."));
 
             builder.HasKey(e => e.PaisId);
 

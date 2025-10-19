@@ -11,7 +11,6 @@
     using System.Transactions;
     using Utilitarios.Constants;
     using Utilitarios.Extensions;
-    using Utilitarios.Helpers;
 
     /// <summary>Implementación de reglas de negocio para el servicio de avion.</summary>
     public class AvionService : IAvionService
@@ -49,20 +48,18 @@
         #region Métodos
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Avion>> GetWithParamsAsync(ParamsConsultarAvion paramsSearch, int? userId = null)
+        public async Task<IEnumerable<BusquedaAvionPoco>> GetWithParamsAsync(ParamsConsultarAvion paramsSearch, int? userId = null)
         {
-            Avion entidad = _iMapper.Map<Avion>(paramsSearch);
-            Expression<Func<Avion, bool>> filtro = entidad.ToFilterExpression<Avion>();
-            return await _iUnitOfWork.Repository<Avion>().ConsultarListaAsync(filtro);
+            return await _iUnitOfWork.DLAvionPersonalizado.ConsultarAviones(paramsSearch);
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Avion>> CreateAsync(ParamsCrearActualizarAvion paramsCreateUpdate, int? userId = null)
+        public async Task<IEnumerable<BusquedaAvionPoco>> CreateAsync(ParamsCrearActualizarAvion paramsCreateUpdate, int? userId = null)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
                 await ValidarCamposCrearActualizarAvion(paramsCreateUpdate);
-                IEnumerable<Avion> listaEntidad = new List<Avion>();
+                IEnumerable<BusquedaAvionPoco> listaEntidad = new List<BusquedaAvionPoco>();
                 Avion createUpdateEntidad = _iMapper.Map<Avion>(paramsCreateUpdate);
 
                 if (paramsCreateUpdate.AvionId != null && paramsCreateUpdate.AvionId > 0)
@@ -134,7 +131,7 @@
         private async Task ValidarCamposCrearActualizarAvion(ParamsCrearActualizarAvion paramsValidate)
         {
             string errores = string.Empty;
-            IEnumerable<Avion> Resultado = new List<Avion>();
+            IEnumerable<BusquedaAvionPoco> Resultado = new List<BusquedaAvionPoco>();
             ParamsConsultarAvion Existentes = new ParamsConsultarAvion();
             Resultado = await GetWithParamsAsync(Existentes);
 
@@ -175,7 +172,7 @@
                 else
                 {
                     // Valida si la ciudad ingresada existe
-                    IEnumerable<Ciudad> ciudades = new List<Ciudad>();
+                    IEnumerable<BusquedaCiudadPoco> ciudades = new List<BusquedaCiudadPoco>();
                     ParamsConsultarCiudad paramsConsultarCiudad = new ParamsConsultarCiudad();
                     paramsConsultarCiudad.CiudadId = paramsValidate.CiudadId;
                     ciudades = await _iAdministracionService.GetWithParamsAsync(paramsConsultarCiudad);
@@ -191,7 +188,7 @@
             if (string.IsNullOrEmpty(errores))
             {
                 // Valida si la ciudad ingresada está activa en el sistema
-                IEnumerable<Ciudad> ciudades = new List<Ciudad>();
+                IEnumerable<BusquedaCiudadPoco> ciudades = new List<BusquedaCiudadPoco>();
                 ParamsConsultarCiudad paramsConsultarCiudad = new ParamsConsultarCiudad();
                 paramsConsultarCiudad.CiudadId = paramsValidate.CiudadId;
                 paramsConsultarCiudad.CiudadEstado = true;
@@ -224,7 +221,7 @@
                 // Valida si el Id del asiento del avion existe
                 if (Resultado.Where(x => x.AsientoAvionId == paramsValidate.AsientoAvionId).Count() == 0)
                 {
-                    errores += string.Format(DefaultMessages.DataNotFound, "El asiento");
+                    errores += string.Format(DefaultMessages.DataNotFound, "El asiento del avión");
                 }
             }
 
@@ -233,12 +230,12 @@
             {
                 if (paramsValidate.AvionId == null || paramsValidate.AvionId == 0)
                 {
-                    errores += string.Format(DefaultMessages.DataNotFound, "El avión");
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "avión");
                 }
                 else
                 {
                     // Valida que el avión si exista en el sistema
-                    IEnumerable<Avion> aviones = new List<Avion>();
+                    IEnumerable<BusquedaAvionPoco> aviones = new List<BusquedaAvionPoco>();
                     ParamsConsultarAvion paramsConsultarAvion = new ParamsConsultarAvion();
                     paramsConsultarAvion.AvionId = paramsValidate.AvionId;
                     aviones = await GetWithParamsAsync(paramsConsultarAvion);
@@ -254,7 +251,7 @@
             if (string.IsNullOrEmpty(errores))
             {
                 // Valida que el avión esté activo en el sistema
-                IEnumerable<Avion> aviones = new List<Avion>();
+                IEnumerable<BusquedaAvionPoco> aviones = new List<BusquedaAvionPoco>();
                 ParamsConsultarAvion paramsConsultarAvion = new ParamsConsultarAvion();
                 paramsConsultarAvion.AvionId = paramsValidate.AvionId;
                 paramsConsultarAvion.AvionEstado = true;

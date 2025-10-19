@@ -1,9 +1,9 @@
 ﻿namespace Api.General.Controllers
 {
     using AutoMapper;
-    using Domain.General.CustomEntities.Creditos;
+    using Domain.General.CustomEntities.Compras;
     using Domain.General.CustomEntities.Vuelo;
-    using Domain.General.DTOs.Creditos;
+    using Domain.General.DTOs.Compras;
     using Domain.General.DTOs.Vuelo;
     using Domain.General.Entities;
     using Domain.General.Interfaces.General;
@@ -11,6 +11,9 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
 
+    /// <summary>
+    /// Controlador que maneja los endpoints relacionados con los vuelos.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
 
@@ -45,23 +48,38 @@
         #endregion
 
         #region EndPoints
-        /// <summary>Endpoint para crear o actualizar la entidad.</summary>
-        /// <param name="parametrosCrearActualizarEntidad">Parametros de entrada para realizar la operacion.</param>
-        /// <returns>Objeto Dto con toda la entidad del sistema.</returns>
+        /// <summary>Endpoint para crear un nuevo vuelo.</summary>
+        /// <param name="parametrosCrearEntidad">Parametros de entrada para realizar la operacion.</param>
+        /// <returns>Objeto Dto del vuelo creado.</returns>
         [Authorize(Roles = "Administrador")]
         [HttpPost]
-        [Route("CrearActualizarVuelo")]
-        public async Task<ActionResult<VueloDto>> CrearActualizarVuelo(ParamsCrearActualizarVuelo parametrosCrearActualizarEntidad)
+        [Route("CrearVuelo")]
+        public async Task<ActionResult<VueloDto>> CrearVuelo(ParamsCrearVuelo parametrosCrearEntidad)
         {
             var usuarioIdClaim = User.Claims.FirstOrDefault(c => c.Type == "UsuarioId");
 
-            Vuelo Entidad = await VueloService.CreateAsync(parametrosCrearActualizarEntidad, Convert.ToInt32(usuarioIdClaim.Value));
+            Vuelo Entidad = await VueloService.CreateAsync(parametrosCrearEntidad, Convert.ToInt32(usuarioIdClaim!.Value));
+            return Ok(_iMapper.Map<VueloDto>(Entidad));
+        }
+
+        /// <summary>Endpoint para actualizar un vuelo.</summary>
+        /// <param name="parametrosActualizarEntidad">Parametros de entrada para realizar la operacion.</param>
+        /// <returns>Objeto Dto del vuelo actualizado.</returns>
+        [Authorize(Roles = "Administrador")]
+        [HttpPost]
+        [Route("ActualizarVuelo")]
+        public async Task<ActionResult<VueloDto>> ActualizarVuelo(ParamsActualizarVuelo parametrosActualizarEntidad)
+        {
+            var usuarioIdClaim = User.Claims.FirstOrDefault(c => c.Type == "UsuarioId");
+
+            Vuelo Entidad = await VueloService.UpdateAsync(parametrosActualizarEntidad, Convert.ToInt32(usuarioIdClaim!.Value));
             return Ok(_iMapper.Map<VueloDto>(Entidad));
         }
 
         /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
         /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
         /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
+        [Authorize(Roles = "Administrador")]
         [HttpGet("ConsultarVuelo")]
         public async Task<ActionResult<List<VueloDto>>> ConsultarVuelo([FromQuery] ParamsConsultarVuelo parametrosConsultarEntidad)
         {
@@ -69,86 +87,61 @@
             return Ok(_iMapper.Map<List<VueloDto>>(listadoEntidad));
         }
 
+        /// <summary>Endpoint para consultar los vuelos bajo un servicio personalizado.</summary>
+        /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
+        /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
+        [Authorize(Roles = "Administrador")]
+        [HttpGet("ConsultarVueloPersonalizado")]
+        public async Task<ActionResult<List<VueloDto>>> ConsultarVueloPersonalizado([FromQuery] ParamsConsultarVuelo parametrosConsultarEntidad)
+        {
+            IEnumerable<BusquedaVueloPoco> listadoEntidad = await VueloService.ConsultarVueloPersonalizado(parametrosConsultarEntidad);
+            return Ok(_iMapper.Map<List<VueloDto>>(listadoEntidad));
+        }
+
+        /// <summary>Endpoint para consultar los vuelos bajo un servicio personalizado.</summary>
+        /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
+        /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
+        [HttpGet("ConsultarVueloDisponibles")]
+        public async Task<ActionResult<List<VuelosDisponiblesDto>>> ConsultarVueloDisponibles([FromQuery] ParamsBusquedaVuelosDisponibles parametrosConsultarEntidad)
+        {
+            IEnumerable<BusquedaVuelosDisponiblesPoco> listadoEntidad = await VueloService.ConsultarVuelosDisponiblesPersonalizado(parametrosConsultarEntidad);
+            return Ok(_iMapper.Map<List<VuelosDisponiblesDto>>(listadoEntidad));
+        }
+
         /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
         /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
         /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
-        [Authorize(Roles = "Administrador,Cliente")]
+        [Authorize(Roles = "Administrador")]
+        [HttpGet("ConsultarVueloAsientos")]
+        public async Task<ActionResult<List<AsientosVueloDto>>> ConsultarVueloAsientos([FromQuery] ParamsBusquedaAsientoVuelo parametrosConsultarEntidad)
+        {
+            IEnumerable<AsientosVueloPoco> listadoEntidad = await VueloService.ConsultarVueloAsientoPersonalizado(parametrosConsultarEntidad);
+            return Ok(_iMapper.Map<List<AsientosVueloDto>>(listadoEntidad));
+        }
+
+        /// <summary>Endpoint para actualizar el estado de un vuelo.</summary>
+        /// <param name="parametrosActualizarEstadoVuelo">Parametros de entrada para realizar la operacion.</param>
+        /// <returns>Objeto Dto con la entidad del sistema actualizada.</returns>
+        [Authorize(Roles = "Administrador")]
+        [HttpPost]
+        [Route("ActualizarEstadoVuelo")]
+        public async Task<ActionResult<VueloDto>> ActualizarEstadoVuelo(ParamsActualizarEstadoVuelo parametrosActualizarEstadoVuelo)
+        {
+            var usuarioIdClaim = User.Claims.FirstOrDefault(c => c.Type == "UsuarioId");
+
+            Vuelo Entidad = await VueloService.ActualizarEstadoVuelo(parametrosActualizarEstadoVuelo, Convert.ToInt32(usuarioIdClaim!.Value));
+            return Ok(_iMapper.Map<VueloDto>(Entidad));
+        }
+
+        /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
+        /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
+        /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
+        [Authorize(Roles = "Administrador")]
         [HttpGet("ConsultarVueloHistorico")]
         public async Task<ActionResult<List<VueloHistoricoDto>>> ConsultarVueloHistorico([FromQuery] ParamsConsultarVueloHistorico parametrosConsultarEntidad)
         {
-            IEnumerable<VueloHistorico> listadoEntidad = await VueloService.GetWithParamsAsync(parametrosConsultarEntidad);
-            return Ok(_iMapper.Map<VueloHistoricoDto>(listadoEntidad));
-        }
-
-        /// <summary>Endpoint para crear o actualizar la entidad.</summary>
-        /// <param name="parametrosCrearActualizarEntidad">Parametros de entrada para realizar la operacion.</param>
-        /// <returns>Objeto Dto con toda la entidad del sistema.</returns>
-        [Authorize(Roles = "Cliente")]
-        [HttpPost]
-        [Route("CrearActualizarCompra")]
-        public async Task<ActionResult<CompraDto>> CrearActualizarCompra(ParamsCrearActualizarCompra parametrosCrearActualizarEntidad)
-        {
-            var usuarioIdClaim = User.Claims.FirstOrDefault(c => c.Type == "UsuarioId");
-
-            Compra Entidad = await VueloService.CreateAsync(parametrosCrearActualizarEntidad, Convert.ToInt32(usuarioIdClaim.Value));
-            return Ok(_iMapper.Map<CompraDto>(Entidad));
-        }
-
-        /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
-        /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
-        /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
-        [Authorize(Roles = "Cliente")]
-        [HttpGet("ConsultarCompra")]
-        public async Task<ActionResult<List<CompraDto>>> ConsultarCompra([FromQuery] ParamsConsultarCompra parametrosConsultarEntidad)
-        {
-            var usuarioIdClaim = User.Claims.FirstOrDefault(c => c.Type == "UsuarioId");
-
-            IEnumerable<Compra> listadoEntidad = await VueloService.GetWithParamsAsync(parametrosConsultarEntidad, Convert.ToInt32(usuarioIdClaim.Value));
-            return Ok(_iMapper.Map<CompraDto>(listadoEntidad));
-        }
-
-        /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
-        /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
-        /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
-        [HttpGet("ConsultarCompraHistorico")]
-        public async Task<ActionResult<List<CompraHistoricoDto>>> ConsultarCompraHistorico([FromQuery] ParamsConsultarCompraHistorico parametrosConsultarEntidad)
-        {
-            IEnumerable<CompraHistorico> listadoEntidad = await VueloService.GetWithParamsAsync(parametrosConsultarEntidad);
-            return Ok(_iMapper.Map<CompraHistoricoDto>(listadoEntidad));
-        }
-
-        /// <summary>Endpoint para crear o actualizar la entidad.</summary>
-        /// <param name="parametrosCrearActualizarEntidad">Parametros de entrada para realizar la operacion.</param>
-        /// <returns>Objeto Dto con toda la entidad del sistema.</returns>
-        [Authorize(Roles = "Cliente")]
-        [HttpPost]
-        [Route("CrearActualizarCompraDetalle")]
-        public async Task<ActionResult<CompraDetalleDto>> CrearActualizarCompraDetalle(List<ParamsCrearActualizarCompraDetalle> parametrosCrearActualizarEntidad)
-        {
-            CompraDetalle Entidad = await VueloService.CreateAsync(parametrosCrearActualizarEntidad);
-            return Ok(_iMapper.Map<CompraDetalleDto>(Entidad));
-        }
-
-        /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
-        /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
-        /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
-        [Authorize(Roles = "Cliente")]
-        [HttpGet("ConsultarCompraDetalle")]
-        public async Task<ActionResult<List<CompraDetalleDto>>> ConsultarCompraDetalle([FromQuery] ParamsConsultarCompraDetalle parametrosConsultarEntidad)
-        {
-            IEnumerable<CompraDetalle> listadoEntidad = await VueloService.GetWithParamsAsync(parametrosConsultarEntidad);
-            return Ok(_iMapper.Map<CompraDetalleDto>(listadoEntidad));
-        }
-
-        /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
-        /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
-        /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
-        [Authorize(Roles = "Cliente")]
-        [HttpGet("ConsultarCompraDetalleHistorico")]
-        public async Task<ActionResult<List<CompraDetalleHistoricoDto>>> ConsultarCompraDetalleHistorico([FromQuery] ParamsConsultarCompraDetalleHistorico parametrosConsultarEntidad)
-        {
-            IEnumerable<CompraDetalleHistorico> listadoEntidad = await VueloService.GetWithParamsAsync(parametrosConsultarEntidad);
-            return Ok(_iMapper.Map<CompraDetalleHistoricoDto>(listadoEntidad));
+            IEnumerable<BusquedaVueloHistoricoPoco> listadoEntidad = await VueloService.GetWithParamsAsync(parametrosConsultarEntidad);
+            return Ok(_iMapper.Map<List<VueloHistoricoDto>>(listadoEntidad));
         }
         #endregion
 

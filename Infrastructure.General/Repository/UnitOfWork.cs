@@ -1,7 +1,9 @@
 ﻿namespace Infrastructure.General.Repository
 {
+    using Domain.General.Interfaces.Repository;
     using Domain.General.Interfaces.UnitOfWork;
     using Infrastructure.General.Persistence.Context;
+    using Infrastructure.General.Repository.Custom;
     using Microsoft.EntityFrameworkCore;
     using Utilitarios.Contracts;
     using Utilitarios.Data;
@@ -11,9 +13,25 @@
     /// </summary>
     public class UnitOfWork : IUnitOfWork
     {
+        #region Variables
         private readonly GeneralContext _contexto;
         private readonly Dictionary<Type, object> _repositories = new();
 
+
+        /// <summary>Instancia del repositorio - DLCiudad.</summary>
+        private readonly IDLCiudad _iDLCiudadPersonalizado;
+
+        /// <summary>Instancia del repositorio - DLAvion.</summary>
+        private readonly IDLAvion _iDLAvionPersonalizado;
+
+        /// <summary>Instancia del repositorio - DLVuelo.</summary>
+        private readonly IDLVuelo _iDLVueloPersonalizado;
+
+        /// <summary>Instancia del repositorio - DLMetricas.</summary>
+        private readonly IDLMetricas _iDLMetricasPersonalizado;
+        #endregion
+
+        #region Constructor
         /// <summary>Inicializa una nueva instancia de la clase <see cref="UnitOfWork"/>.</summary>
         /// <param name="contexto">Contexto de base de datos de Entity Framework utilizado para persistir cambios.</param>
         public UnitOfWork(GeneralContext contexto)
@@ -21,6 +39,9 @@
             _contexto = contexto;
         }
 
+        #endregion
+
+        #region Instancias
         /// <summary>Obtiene una instancia del repositorio genérico para la entidad especificada.
         /// Si no existe aún en el diccionario de repositorios, se crea una nueva instancia.
         /// </summary>
@@ -39,26 +60,45 @@
             return (ICrudSqlRepositorio<T>)_repositories[type];
         }
 
-        /// <summary>Guarda de manera sincrónica todos los cambios efectuados en el contexto.</summary>
+        /// <summary>Inicialización y verificación de la instancia del repositorio - DLCiudadPersonalizado.</summary>
+        public IDLCiudad DLCiudadPersonalizado => _iDLCiudadPersonalizado ?? new DLCiudad(_contexto);
+
+        /// <summary>Inicialización y verificación de la instancia del repositorio - DLAvionPersonalizado.</summary>
+        public IDLAvion DLAvionPersonalizado => _iDLAvionPersonalizado ?? new DLAvion(_contexto);
+
+        /// <summary>Inicialización y verificación de la instancia del repositorio - DLVueloPersonalizado.</summary>
+        public IDLVuelo DLVueloPersonalizado => _iDLVueloPersonalizado ?? new DLVuelo(_contexto);
+
+        /// <summary>Inicialización y verificación de la instancia del repositorio - DLMetricas.</summary>
+        public IDLMetricas DLMetricasPersonalizado => _iDLMetricasPersonalizado ?? new DLMetricas(_contexto);
+        #endregion
+
+        #region Guardar Cambios
+
+        /// <summary>Guardar cambios efectuados en la Conexión de BD.</summary>
         public void SaveChanges() => _contexto.SaveChanges();
 
-        /// <summary>Guarda de manera asincrónica todos los cambios efectuados en el contexto.</summary>
-        /// <returns>Una tarea asincrónica que representa la operación de guardado.</returns>
+        /// <summary>Guardar cambios efectuados en la Conexión de BD.</summary>
         public async Task SaveChangesAsync() => await _contexto.SaveChangesAsync();
 
-        /// <summary>Libera los recursos utilizados por el contexto de base de datos.</summary>
+        #endregion
+
+        #region Liberar Conexión
+
+        /// <summary>Libera la Conexión de BD.</summary>
         public void Dispose()
         {
             if (_contexto != null)
                 _contexto.Dispose();
         }
 
-        /// <summary>Libera los recursos utilizados por el contexto de base de datos de manera asincrónica.</summary>
-        /// <returns>Una tarea asincrónica que representa la operación de liberación de recursos.</returns>
+        /// <summary>Libera la Conexión de BD.</summary>
         public async Task DisposeAsync()
         {
             if (_contexto != null)
                 await _contexto.DisposeAsync();
         }
+
+        #endregion
     }
 }

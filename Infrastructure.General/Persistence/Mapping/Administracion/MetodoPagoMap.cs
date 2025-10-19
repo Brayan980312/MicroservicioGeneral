@@ -13,9 +13,7 @@
         /// <param name="builder">Constructor de la entidad a configurar.</param>
         public void Configure(EntityTypeBuilder<MetodoPago> builder)
         {
-            builder.ToTable("MetodoPago", "Administracion");
-
-            builder.HasComment("Almacena la información de los métodos de pago disponibles en el sistema, incluyendo su descripción y estado activo/inactivo.");
+            builder.ToTable("MetodoPago", "Administracion", t => t.HasComment("Almacena la información de los métodos de pago disponibles en el sistema, incluyendo su descripción y estado activo/inactivo."));           
 
             builder.HasKey(e => e.MetodoPagoId);
 

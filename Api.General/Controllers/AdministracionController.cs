@@ -9,6 +9,9 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
 
+    /// <summary>
+    /// Controlador que maneja los endpoints relacionados con la administración del sistema.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
 
@@ -74,7 +77,7 @@
         [Route("CrearActualizarCiudad")]
         public async Task<ActionResult<List<CiudadDto>>> CrearActualizarCiudad(ParamsCrearActualizarCiudad parametrosCrearActualizarEntidad)
         {
-            IEnumerable<Ciudad> listadoEntidad = await AdministracionService.CreateAsync(parametrosCrearActualizarEntidad);
+            IEnumerable<BusquedaCiudadPoco> listadoEntidad = await AdministracionService.CreateAsync(parametrosCrearActualizarEntidad);
             return Ok(_iMapper.Map<List<CiudadDto>>(listadoEntidad));
         }
 
@@ -84,21 +87,8 @@
         [HttpGet("ConsultarCiudad")]
         public async Task<ActionResult<List<CiudadDto>>> ConsultarCiudad([FromQuery] ParamsConsultarCiudad parametrosConsultarEntidad)
         {
-            IEnumerable<Ciudad> listadoEntidad = await AdministracionService.GetWithParamsAsync(parametrosConsultarEntidad);
+            IEnumerable<BusquedaCiudadPoco> listadoEntidad = await AdministracionService.GetWithParamsAsync(parametrosConsultarEntidad);
             return Ok(_iMapper.Map<List<CiudadDto>>(listadoEntidad));
-        }
-
-
-        /// <summary>Endpoint para crear o actualizar la entidad.</summary>
-        /// <param name="parametrosCrearActualizarEntidad">Parametros de entrada para realizar la operacion.</param>
-        /// <returns>Lista Dto con toda la entidad del sistema.</returns>
-        [Authorize(Roles = "Administrador")]
-        [HttpPost]
-        [Route("CrearActualizarMetodoPago")]
-        public async Task<ActionResult<List<MetodoPagoDto>>> CrearActualizarMetodoPago(ParamsCrearActualizarMetodoPago parametrosCrearActualizarEntidad)
-        {
-            IEnumerable<MetodoPago> listadoEntidad = await AdministracionService.CreateAsync(parametrosCrearActualizarEntidad);
-            return Ok(_iMapper.Map<List<MetodoPagoDto>>(listadoEntidad));
         }
 
         /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>

@@ -2,43 +2,52 @@
 {
     public class VueloHistoricoDto
     {
-        /// <summary>Identificador único del registro histórico del vuelo.</summary>
-        public int? VueloHistoricoId { get; set; }
-
-        /// <summary>Identificador del vuelo asociado.</summary>
-        public int? VueloId { get; set; }
-
-        /// <summary>Código histórico del vuelo.</summary>
+        /// <summary>Código del vuelo.</summary>
         public string? VueloHistoricoCodigo { get; set; }
 
-        /// <summary>Identificador del estado del vuelo en el historial.</summary>
+        /// <summary>Identificador del estado del vuelo.</summary>
         public int? EstadoVueloId { get; set; }
 
-        /// <summary>Identificador del avión asociado al vuelo.</summary>
-        public int? AvionId { get; set; }
+        /// <summary>Nombre del estado del vuelo.</summary>
+        public string? EstadoVueloNombre { get; set; }
 
-        /// <summary>Identificador de la ciudad de origen.</summary>
-        public int? CiudadOrigenId { get; set; }
+        /// <summary>Nombre del avión asociado al vuelo.</summary>
+        public string? AvionNombre { get; set; }
 
-        /// <summary>Identificador de la ciudad de destino.</summary>
-        public int? CiudadDestinoId { get; set; }
+        /// <summary>Nombre de la ciudad de origen.</summary>
+        public string? CiudadOrigenNombre { get; set; }
 
-        /// <summary>Precio del vuelo en el historial.</summary>
+        /// <summary>Nomenclatura de la ciudad de origen.</summary>
+        public string? CiudadOrigenNomenclatura { get; set; }
+
+        /// <summary>Nombre y nomenclatura de la ciudad de origen.</summary>
+        public string? CiudadOrigenNombreNomenclatura { get; set; }
+
+        /// <summary>Nombre de la ciudad de destino.</summary>
+        public string? CiudadDestinoNombre { get; set; }
+
+        /// <summary>Nomenclatura de la ciudad de destino.</summary>
+        public string? CiudadDestinoNomenclatura { get; set; }
+
+        /// <summary>Nombre y nomenclatura de la ciudad de destino.</summary>
+        public string? CiudadDestinoNombreNomenclatura { get; set; }
+
+        /// <summary>Precio del vuelo.</summary>
         public decimal? VueloHistoricoPrecio { get; set; }
 
-        /// <summary>Descuento aplicado en el historial.</summary>
+        /// <summary>Descuento aplicado al vuelo.</summary>
         public decimal? VueloHistoricoDescuento { get; set; }
 
-        /// <summary>Fecha y hora de salida en el historial.</summary>
+        /// <summary>Fecha y hora de salida del vuelo.</summary>
         public DateTime? VueloHistoricoFechaHoraSalida { get; set; }
 
-        /// <summary>Fecha y hora de llegada en el historial.</summary>
+        /// <summary>Fecha y hora de llegada del vuelo.</summary>
         public DateTime? VueloHistoricoFechaHoraLlegada { get; set; }
 
-        /// <summary>Identificador del usuario que registró el historial.</summary>
-        public int? UsuarioCreacionId { get; set; }
+        /// <summary>Nombre completo del Usuario que realiza el cambio.</summary>
+        public string UsuarioNombreCompleto { get; set; }
 
-        /// <summary>Fecha de creación del registro histórico.</summary>
+        /// <summary>Fecha y hora del registro del historico.</summary>
         public DateTime? VueloHistoricoFechaCreacion { get; set; }
     }
 }

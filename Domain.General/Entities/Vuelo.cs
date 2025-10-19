@@ -40,5 +40,17 @@
 
         /// <summary>Fecha de creación del vuelo.</summary>
         public DateTime? VueloFechaCreacion { get; set; }
+
+        /// <summary>Entidad de navegación hacia el estado en el que se encuentra un vuelo.</summary>
+        public EstadoVuelo? EstadoVuelo { get; set; }
+
+        /// <summary>Entidad de navegación hacia el avión que está asociado al vuelo.</summary>
+        public Avion? Avion { get; set; }
+
+        /// <summary>Entidad de navegación hacia la ciudad de donde despega el avión.</summary>
+        public Ciudad? CiudadOrigen { get; set; }
+
+        /// <summary>Entidad de navegación hacia la ciudad de donde aterriza el avión.</summary>
+        public Ciudad? CiudadDestino { get; set; }
     }
 }

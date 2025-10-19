@@ -11,6 +11,9 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
 
+    /// <summary>
+    /// Controlador que maneja los endpoints relacionados con los aviones del sistema.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
 
@@ -53,7 +56,7 @@
         [Route("CrearActualizarAvion")]
         public async Task<ActionResult<List<AvionDto>>> CrearActualizarAvion(ParamsCrearActualizarAvion parametrosCrearActualizarEntidad)
         {
-            IEnumerable<Avion> listadoEntidad = await AvionService.CreateAsync(parametrosCrearActualizarEntidad);
+            IEnumerable<BusquedaAvionPoco> listadoEntidad = await AvionService.CreateAsync(parametrosCrearActualizarEntidad);
             return Ok(_iMapper.Map<List<AvionDto>>(listadoEntidad));
         }
 
@@ -64,7 +67,7 @@
         [HttpGet("ConsultarAvion")]
         public async Task<ActionResult<List<AvionDto>>> ConsultarAvion([FromQuery] ParamsConsultarAvion parametrosConsultarEntidad)
         {
-            IEnumerable<Avion> listadoEntidad = await AvionService.GetWithParamsAsync(parametrosConsultarEntidad);
+            IEnumerable<BusquedaAvionPoco> listadoEntidad = await AvionService.GetWithParamsAsync(parametrosConsultarEntidad);
             return Ok(_iMapper.Map<List<AvionDto>>(listadoEntidad));
         }
 

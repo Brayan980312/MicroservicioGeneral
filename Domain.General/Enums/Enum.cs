@@ -2,9 +2,7 @@
 {
     public class Enum
     {
-        /// <summary>
-        /// Define los codigos de respuesta de la API.
-        /// </summary>
+        /// <summary>Define los codigos de respuesta de la API.</summary>
         public enum RespuestaAPI
         {
             Ok = 200,
@@ -12,9 +10,7 @@
             Error = 500
         }
 
-        /// <summary>
-        /// Estados de un vuelo.
-        /// </summary>
+        /// <summary>Estados de un vuelo.</summary>
         public enum EstadoVuelo
         {
             Programado = 1,
@@ -27,14 +23,19 @@
             Cancelado = 8,
         }
 
-        /// <summary>
-        /// Estados de la compra de un vuelo.
-        /// </summary>
+        /// <summary>Estados de la compra de un vuelo.</summary>
         public enum EstadoCompra
         {
             Comprado = 1,
             Embolsado = 2,
             Cancelado = 3
         }
+
+        /// <summary>Metodos de pago disponibles en el sistema.</summary>
+        public enum MetodoPago
+        {
+            Creditos = 1
+        }
+
     }
 }

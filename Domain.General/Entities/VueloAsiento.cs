@@ -1,25 +1,24 @@
 ﻿namespace Domain.General.Entities
 {
     using System;
-    using System.ComponentModel.DataAnnotations;
     using Utilitarios.Entities;
 
     public class VueloAsiento : EntidadBase
     {
         /// <summary>Identificador único del registro del asiento asignado a un vuelo.</summary>
-        public int VueloAsientoId { get; set; }
+        public int? VueloAsientoId { get; set; }
 
         /// <summary>Identificador del vuelo al que pertenece el asiento.</summary>
         public int VueloId { get; set; }
 
         /// <summary>Identificador del asiento físico dentro del avión.</summary>
-        public int AsientoId { get; set; }
+        public int? AsientoAvionId { get; set; }
 
         /// <summary>Indica si el asiento está reservado temporalmente.</summary>
-        public bool VueloAsientoReservado { get; set; }
+        public bool? VueloAsientoReservado { get; set; }
 
         /// <summary>Indica si el asiento ya fue comprado definitivamente.</summary>
-        public bool VueloAsientoComprado { get; set; }
+        public bool? VueloAsientoComprado { get; set; }
 
         /// <summary>
         /// Fecha y hora hasta la cual el asiento permanecerá bloqueado para evitar su compra simultánea.
@@ -32,5 +31,12 @@
         /// Se actualiza automáticamente por SQL Server en cada modificación.
         /// </summary>
         public byte[] RowVersion { get; set; }
+
+        /// <summary>Entidad de navegación hacia el detalle de la compra para saber quienes son los que tienen el asiento del vuelo.</summary>
+        public CompraDetalle? CompraDetalle { get; set; }
+
+        /// <summary>Entidad de navegación hacia el asiento del avión para saber nombre de puesto.</summary>
+        public AsientoAvion? AsientoAvion { get; set; }
+
     }
 }

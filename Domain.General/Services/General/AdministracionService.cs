@@ -2,6 +2,7 @@
 {
     using AutoMapper;
     using Domain.General.CustomEntities.Administracion;
+    using Domain.General.CustomEntities.Vuelo;
     using Domain.General.Entities;
     using Domain.General.Interfaces.General;
     using Domain.General.Interfaces.UnitOfWork;
@@ -79,20 +80,18 @@
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Ciudad>> GetWithParamsAsync(ParamsConsultarCiudad paramsSearch, int? userId = null)
+        public async Task<IEnumerable<BusquedaCiudadPoco>> GetWithParamsAsync(ParamsConsultarCiudad paramsSearch, int? userId = null)
         {
-            Ciudad entidad = _iMapper.Map<Ciudad>(paramsSearch);
-            Expression<Func<Ciudad, bool>> filtro = entidad.ToFilterExpression<Ciudad>();
-            return await _iUnitOfWork.Repository<Ciudad>().ConsultarListaAsync(filtro);
+            return await _iUnitOfWork.DLCiudadPersonalizado.ConsultarCiudades(paramsSearch);
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Ciudad>> CreateAsync(ParamsCrearActualizarCiudad paramsCreateUpdate, int? userId = null)
+        public async Task<IEnumerable<BusquedaCiudadPoco>> CreateAsync(ParamsCrearActualizarCiudad paramsCreateUpdate, int? userId = null)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
                 await ValidarCamposCrearActualizarCiudad(paramsCreateUpdate);
-                IEnumerable<Ciudad> listaEntidad = new List<Ciudad>();
+                IEnumerable<BusquedaCiudadPoco> listaEntidad = new List<BusquedaCiudadPoco>();
                 Ciudad createUpdateEntidad = _iMapper.Map<Ciudad>(paramsCreateUpdate);
 
                 if (paramsCreateUpdate.CiudadId != null && paramsCreateUpdate.CiudadId > 0)
@@ -124,37 +123,6 @@
             Expression<Func<MetodoPago, bool>> filtro = entidad.ToFilterExpression<MetodoPago>();
             return await _iUnitOfWork.Repository<MetodoPago>().ConsultarListaAsync(filtro);
         }
-
-        /// <inheritdoc />
-        public async Task<IEnumerable<MetodoPago>> CreateAsync(ParamsCrearActualizarMetodoPago paramsCreateUpdate, int? userId = null)
-        {
-            using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
-            {
-                await ValidarCamposCrearActualizarMetodoPago(paramsCreateUpdate);
-                IEnumerable<MetodoPago> listaEntidad = new List<MetodoPago>();
-                MetodoPago createUpdateEntidad = _iMapper.Map<MetodoPago>(paramsCreateUpdate);
-
-                if (paramsCreateUpdate.MetodoPagoId != null && paramsCreateUpdate.MetodoPagoId > 0)
-                {
-                    await _iUnitOfWork.Repository<MetodoPago>().ActualizarAsync(createUpdateEntidad);
-                }
-                else
-                {
-                    // Crea y garantiza que el atributo primario vaya null
-                    createUpdateEntidad.MetodoPagoId = null;
-                    await _iUnitOfWork.Repository<MetodoPago>().AdicionarAsync(createUpdateEntidad);
-                }
-
-                await _iUnitOfWork.SaveChangesAsync();
-
-                // Llama el servicio ya creado para consultar la entidad completa
-                ParamsConsultarMetodoPago parametrosFiltrar = new ParamsConsultarMetodoPago();
-                listaEntidad = await GetWithParamsAsync(parametrosFiltrar);
-
-                scope.Complete();
-                return listaEntidad;
-            }
-        }
         #endregion
 
         #region ValidacionCampos
@@ -177,32 +145,64 @@
                 }
             }
 
-            if (string.IsNullOrEmpty(parametrosCrearActualizarPais.PaisNombre))
+            // Valida el nombre del pais
+            if (string.IsNullOrEmpty(errores))
             {
-                errores += string.Format(DefaultMessages.FieldRequiredWithName, "nombre");
-            }
-            else
-            {
-                // Valida si el nombre del pais ya existe en el sistema
-                if (PaisResultado.Any(x => x.PaisNombre.Trim().ToUpper() == parametrosCrearActualizarPais.PaisNombre.Trim().ToUpper() &&
-                                                                    x.PaisId != parametrosCrearActualizarPais.PaisId))
+                if (string.IsNullOrEmpty(parametrosCrearActualizarPais.PaisNombre))
                 {
-                    errores += string.Format(DefaultMessages.AlreadyExistsData, $"el país '{parametrosCrearActualizarPais.PaisNombre.Trim()}'");
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "nombre");
+                }
+                else
+                {
+                    // Valida si el nombre del pais ya existe en el sistema
+                    if (PaisResultado.Any(x => x.PaisNombre.Trim().ToUpper() == parametrosCrearActualizarPais.PaisNombre.Trim().ToUpper() &&
+                                                                        x.PaisId != parametrosCrearActualizarPais.PaisId))
+                    {
+                        errores += string.Format(DefaultMessages.AlreadyExistsData, $"el país '{parametrosCrearActualizarPais.PaisNombre.Trim()}'");
+                    }
                 }
             }
 
-            if (string.IsNullOrEmpty(parametrosCrearActualizarPais.PaisNomenclatura))
+            // Valida la nomenclatura del pais
+            if (string.IsNullOrEmpty(errores))
             {
-                errores += string.Format(DefaultMessages.FieldRequiredWithName, "nomenclatura");
-            }
-            else
-            {
-                // Valida si la nomenclatura del pais ya existe en el sistema
-                if (PaisResultado.Any(x => x.PaisNomenclatura.Trim().ToUpper() == parametrosCrearActualizarPais.PaisNomenclatura.Trim().ToUpper() &&
-                                                                    x.PaisId != parametrosCrearActualizarPais.PaisId))
+                if (string.IsNullOrEmpty(parametrosCrearActualizarPais.PaisNomenclatura))
                 {
-                    errores += string.Format(DefaultMessages.AlreadyExistsData,
-                        $"la nomenclatura '{parametrosCrearActualizarPais.PaisNomenclatura.Trim()}'");
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "nomenclatura");
+                }
+                else
+                {
+                    // Valida si la nomenclatura del pais ya existe en el sistema
+                    if (PaisResultado.Any(x => x.PaisNomenclatura.Trim().ToUpper() == parametrosCrearActualizarPais.PaisNomenclatura.Trim().ToUpper() &&
+                                                                        x.PaisId != parametrosCrearActualizarPais.PaisId))
+                    {
+                        errores += string.Format(DefaultMessages.AlreadyExistsData,
+                            $"la nomenclatura '{parametrosCrearActualizarPais.PaisNomenclatura.Trim()}'");
+                    }
+                }
+
+            }
+
+            // Valida que no se pueda cambiar el nombre o nomenclatura si tiene una ciudad asociada 
+            if (string.IsNullOrEmpty(errores))
+            {
+                if (parametrosCrearActualizarPais.PaisId != null && parametrosCrearActualizarPais.PaisId > 0)
+                {
+                    IEnumerable<BusquedaCiudadPoco> Resultado = new List<BusquedaCiudadPoco>();
+                    ParamsConsultarCiudad Existentes = new ParamsConsultarCiudad();
+                    Existentes.PaisId = parametrosCrearActualizarPais.PaisId;
+                    Resultado = await GetWithParamsAsync(Existentes);
+
+                    if (Resultado.Count() > 0)
+                    {
+                        if (PaisResultado.Where(x => x.PaisId == parametrosCrearActualizarPais.PaisId &&
+                                                                                 x.PaisNombre== parametrosCrearActualizarPais.PaisNombre &&
+                                                                                 x.PaisNomenclatura == parametrosCrearActualizarPais.PaisNomenclatura).Count() == 0)
+                        {
+                            errores += "No se permite cambiar el nombre o la nomenclatura del pais, ya tiene ciudades asociadas.";
+                        }
+                    }
+                    
                 }
             }
 
@@ -218,7 +218,7 @@
         private async Task ValidarCamposCrearActualizarCiudad(ParamsCrearActualizarCiudad parametrosCrearActualizarCiudad)
         {
             string errores = string.Empty;
-            IEnumerable<Ciudad> Resultado = new List<Ciudad>();
+            IEnumerable<BusquedaCiudadPoco> Resultado = new List<BusquedaCiudadPoco>();
             ParamsConsultarCiudad Existentes = new ParamsConsultarCiudad();
             Resultado = await GetWithParamsAsync(Existentes);
 
@@ -231,7 +231,7 @@
                 }
             }
 
-            // Valida nombre ciudad
+            // Valida el nombre de la ciudad
             if (string.IsNullOrEmpty(errores))
             {
                 if (string.IsNullOrEmpty(parametrosCrearActualizarCiudad.CiudadNombre))
@@ -249,7 +249,7 @@
                 }
             }
 
-            // Valida nomenclatura de la ciudad
+            // Valida la nomenclatura de la ciudad
             if (string.IsNullOrEmpty(errores))
             {
                 if (string.IsNullOrEmpty(parametrosCrearActualizarCiudad.CiudadNomenclatura))
@@ -268,7 +268,7 @@
                 }
             }
 
-            // Valida pais
+            // Valida el pais
             if (string.IsNullOrEmpty(errores))
             {
                 if (parametrosCrearActualizarCiudad.PaisId == null || parametrosCrearActualizarCiudad.PaisId == 0)
@@ -289,63 +289,21 @@
                 }
             }
 
-            // Valida el estado del pais
+            // Valida que no se pueda cambiar el estado de la ciudad si hay un vuelo programado, disponible o cerrado
             if (string.IsNullOrEmpty(errores))
             {
-                IEnumerable<Pais> ResultadoPais = new List<Pais>();
-                ParamsConsultarPais ExistentesPais = new ParamsConsultarPais();
-                ExistentesPais.PaisId = parametrosCrearActualizarCiudad.PaisId;
-                ExistentesPais.PaisEstado = true;
-                ResultadoPais = await GetWithParamsAsync(ExistentesPais);
-
-                if (ResultadoPais.Count() == 0)
+                if (parametrosCrearActualizarCiudad.CiudadId != null && parametrosCrearActualizarCiudad.CiudadId > 0)
                 {
-                    errores += string.Format(DefaultMessages.NotActiveData, "El país");
+                    Vuelo entidad = new Vuelo();
+                    Expression<Func<Vuelo, bool>> filtro = entidad.ToFilterExpression<Vuelo>();
+                    IEnumerable<Vuelo> vuelos= await _iUnitOfWork.Repository<Vuelo>().ConsultarListaAsync(filtro);
+
+                    if (vuelos.Where(x => (x.CiudadOrigenId == parametrosCrearActualizarCiudad.CiudadId || x.CiudadDestinoId == parametrosCrearActualizarCiudad.CiudadId) &&
+                                                              (x.EstadoVueloId != (int)Domain.General.Enums.Enum.EstadoVuelo.Programado)).Count() > 0)
+                    {
+                        errores += "No se permite actualizar la ciudad, ya existen vuelos diferentes de programados asociados";
+                    }
                 }
-            }
-
-            if (!string.IsNullOrEmpty(errores))
-            {
-                throw new ValidationException(errores);
-            }
-        }
-
-        /// <summary>Valida los campos obligatorios para realizar la creacion o actualización del metodo de pago.</summary>
-        /// <param name="parametrosCrearActualizarMetodoPago">El objeto de tipo ParamsCrearActualizarMetodoPago que contiene los detalles a validar.</param>
-        /// <exception cref="ValidationException">Lanza una excepción si alguno de los campos obligatorios es nulo o tiene un valor inválido.</exception>
-        private async Task ValidarCamposCrearActualizarMetodoPago(ParamsCrearActualizarMetodoPago parametrosCrearActualizarMetodoPago)
-        {
-            string errores = string.Empty;
-            IEnumerable<MetodoPago> Resultado = new List<MetodoPago>();
-            ParamsConsultarMetodoPago Existentes = new ParamsConsultarMetodoPago();
-            Resultado = await GetWithParamsAsync(Existentes);
-
-            if (parametrosCrearActualizarMetodoPago.MetodoPagoId != null && parametrosCrearActualizarMetodoPago.MetodoPagoId > 0)
-            {
-                // Valida si el Id del metodo de pago existe
-                if (Resultado.Where(x => x.MetodoPagoId == parametrosCrearActualizarMetodoPago.MetodoPagoId).Count() == 0)
-                {
-                    errores += string.Format(DefaultMessages.DataNotFound, "El metodo de pago");
-                }
-            }
-
-            if (string.IsNullOrEmpty(parametrosCrearActualizarMetodoPago.MetodoPagoNombre))
-            {
-                errores += string.Format(DefaultMessages.FieldRequiredWithName, "nombre");
-            }
-            else
-            {
-                // Valida si el nombre del metodo de pago ya existe en el sistema
-                if (Resultado.Any(x => x.MetodoPagoNombre.Trim().ToUpper() == parametrosCrearActualizarMetodoPago.MetodoPagoNombre.Trim().ToUpper() &&
-                                                                    x.MetodoPagoId != parametrosCrearActualizarMetodoPago.MetodoPagoId))
-                {
-                    errores += string.Format(DefaultMessages.AlreadyExistsData, $"el metodo de pago '{parametrosCrearActualizarMetodoPago.MetodoPagoNombre.Trim()}'");
-                }
-            }
-
-            if (string.IsNullOrEmpty(parametrosCrearActualizarMetodoPago.MetodoPagoDescripcion))
-            {
-                errores += string.Format(DefaultMessages.FieldRequiredWithName, "descripción");
             }
 
             if (!string.IsNullOrEmpty(errores))

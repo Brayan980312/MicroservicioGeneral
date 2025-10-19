@@ -1,5 +1,6 @@
 ﻿namespace Infrastructure.General.Persistence.Context
 {
+    using Domain.General.Entities;
     using Microsoft.EntityFrameworkCore;
 
     /// <summary>DbContext para las entidades relacionadas con las entidades del proyecto y auditoría.
@@ -49,6 +50,27 @@
             // Aplica cualquier otro mapping que exista en el ensamblado.
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(GeneralContext).Assembly);
         }
+
+        #endregion
+
+        #region EntidadesPersonalizadas
+        /// <value>Declaración de DbSet Ciudad.</value>
+        public virtual DbSet<Ciudad> Ciudad { get; set; }
+
+        /// <value>Declaración de DbSet Avion.</value>
+        public virtual DbSet<Avion> Avion { get; set; }
+
+        /// <value>Declaración de DbSet Vuelo.</value>
+        public virtual DbSet<Vuelo> Vuelo { get; set; }
+
+        /// <value>Declaración de DbSet VueloAsiento.</value>
+        public virtual DbSet<VueloAsiento> VueloAsiento { get; set; }
+
+        /// <value>Declaración de DbSet VuelosMasBuscados.</value>
+        public virtual DbSet<VuelosMasBuscados> VuelosMasBuscados { get; set; }
+
+        /// <value>Declaración de DbSet VueloHistorico.</value>
+        public virtual DbSet<VueloHistorico> VueloHistorico { get; set; }
 
         #endregion
     }

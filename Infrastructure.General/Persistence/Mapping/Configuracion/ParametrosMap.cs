@@ -12,9 +12,7 @@
         /// <param name="builder">Entidad a Configurar.</param>
         public void Configure(EntityTypeBuilder<Parametros> builder)
         {
-            builder.ToTable("Parametros", "Configuracion");
-
-            builder.HasComment("Almacena los parámetros configurables de la aplicación, como valores generales o de comportamiento del sistema.");
+            builder.ToTable("Parametros", "Configuracion", t => t.HasComment("Almacena los parámetros configurables de la aplicación, como valores generales o de comportamiento del sistema."));
 
             builder.HasKey(e => e.ParametrosId);
 

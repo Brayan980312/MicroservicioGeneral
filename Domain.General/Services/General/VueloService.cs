@@ -3,19 +3,21 @@
     using AutoMapper;
     using Domain.General.CustomEntities.Administracion;
     using Domain.General.CustomEntities.Avion;
+    using Domain.General.CustomEntities.Compras;
+    using Domain.General.CustomEntities.Metricas;
     using Domain.General.CustomEntities.Params;
     using Domain.General.CustomEntities.Vuelo;
     using Domain.General.Entities;
     using Domain.General.Interfaces.General;
     using Domain.General.Interfaces.UnitOfWork;
     using Microsoft.EntityFrameworkCore;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Transactions;
     using Utilitarios.Constants;
     using Utilitarios.Extensions;
-    using Utilitarios.Helpers;
 
     /// <summary>Implementación de reglas de negocio para el servicio de vuelo.</summary>
     public class VueloService : IVueloService
@@ -37,19 +39,23 @@
         /// <summary>Inyeccion del servicio IAvionService.</summary>
         private readonly IAvionService _iAvionService;
 
+        /// <summary>Inyeccion del servicio Metricas.</summary>
+        private readonly IMetricasService _iMetricasService;
+
         #endregion
 
         #region Constructor
 
         ///<summary>Inicializa una nueva instancia de la clase VueloService.</summary>
         /// <param name="iUnitOfWork">Inyección de dependencias de la unidad de trabajo - UnitOfWork.</param>
-        public VueloService(IUnitOfWork iUnitOfWork, IMapper iMapper, IAdministracionService iAdministracionService, IAvionService iAvionService, IConfiguracionService iConfiguracionService)
+        public VueloService(IUnitOfWork iUnitOfWork, IMapper iMapper, IAdministracionService iAdministracionService, IAvionService iAvionService, IConfiguracionService iConfiguracionService, IMetricasService iMetricasService)
         {
             _iUnitOfWork = iUnitOfWork;
             _iMapper = iMapper;
             _iAdministracionService = iAdministracionService;
             _iAvionService = iAvionService;
             _iConfiguracionService = iConfiguracionService;
+            _iMetricasService = iMetricasService;
         }
 
         #endregion
@@ -64,113 +70,132 @@
             return await _iUnitOfWork.Repository<Vuelo>().ConsultarListaAsync(filtro);
         }
 
+        /// <summary>Servicio personalizado para la consulta de vuelos.</summary>
+        /// <param name="searchFlight">Parametros con el que se buscara los vuelos bajo ciertos criterios.</param>
+        /// <returns>Lista BusquedaVueloPoco con la información de los vuelos buscados.</returns>
+        public async Task<IEnumerable<BusquedaVueloPoco>> ConsultarVueloPersonalizado(ParamsConsultarVuelo paramsSearch) 
+        {
+            return await _iUnitOfWork.DLVueloPersonalizado.ConsultarVuelos(paramsSearch);
+        }
+
+        /// <summary>Contrato personalizado para la consulta de vuelos disponibles en el sistema.</summary>
+        /// <param name="paramsSearch">Parametros con el que se buscara los vuelos disponibles bajo ciertos criterios.</param>
+        /// <returns>Lista BusquedaVuelosDisponiblesPoco con la información de los vuelos disponibles buscados.</returns>
+        public async Task<IEnumerable<BusquedaVuelosDisponiblesPoco>> ConsultarVuelosDisponiblesPersonalizado(ParamsBusquedaVuelosDisponibles paramsSearch)
+        {
+            // Realiza la actualización de la metrica de vuelos más buscados
+            ParamsCrearActualizarVuelosMasBuscados metricaVuelosMasBuscados = new ParamsCrearActualizarVuelosMasBuscados();
+            metricaVuelosMasBuscados.CiudadOrigenId = paramsSearch.CiudadOrigenId;
+            metricaVuelosMasBuscados.CiudadDestinoId = paramsSearch.CiudadDestinoId;
+            await _iMetricasService.CreateAsync(metricaVuelosMasBuscados);
+
+            IEnumerable<BusquedaVuelosDisponiblesPoco> vuelosDisponibles = await _iUnitOfWork.DLVueloPersonalizado.ConsultarVuelosDisponibles(paramsSearch);
+            List<BusquedaVuelosDisponiblesPoco> vuelosDisponiblesFinales = new List<BusquedaVuelosDisponiblesPoco>();
+
+            // Recorre cada uno de los vuelos disponibles para consultar los asientos del vuelo y validar si están disponibles la cantidad de pasajeros que solicita el usuario
+            foreach (BusquedaVuelosDisponiblesPoco item in vuelosDisponibles)
+            {
+                IEnumerable<VueloAsiento> asientosVuelo = await ConsultaVueloAsientos((int)item.VueloId);
+                int cantidadDisponibles = asientosVuelo.Count(a => (a.VueloAsientoReservado ?? false) == false && (a.VueloAsientoComprado ?? false) == false);
+
+                if (paramsSearch.CantidadPasajeros <= cantidadDisponibles)
+                {
+                    vuelosDisponiblesFinales.Add(item);
+                } 
+            }
+
+            IEnumerable<BusquedaVuelosDisponiblesPoco> resultadoFinal = vuelosDisponiblesFinales;
+
+            return resultadoFinal;
+        }
+
         /// <inheritdoc />
-        public async Task<Vuelo> CreateAsync(ParamsCrearActualizarVuelo paramsCreateUpdate, int? userId = null)
+        public async Task<Vuelo> CreateAsync(ParamsCrearVuelo paramsCreate, int? userId = null)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
-                await ValidarCamposCrearActualizarVuelo(paramsCreateUpdate);
+                await ValidarCamposCrearVuelo(paramsCreate);
                 IEnumerable<Vuelo> listaEntidad = new List<Vuelo>();
-                Vuelo createUpdateEntidad = _iMapper.Map<Vuelo>(paramsCreateUpdate);
+                Vuelo createEntidad = _iMapper.Map<Vuelo>(paramsCreate);
 
-                createUpdateEntidad.UsuarioCreacionId = userId;
-                createUpdateEntidad.VueloFechaCreacion = DateTime.Now;
-
-                if (paramsCreateUpdate.VueloId != null && paramsCreateUpdate.VueloId > 0)
-                {
-                    await _iUnitOfWork.Repository<Vuelo>().ActualizarAsync(createUpdateEntidad);
-                }
-                else
-                {
-                    // Crea y garantiza que el atributo primario vaya null
-                    createUpdateEntidad.VueloId = null;
-                    createUpdateEntidad.EstadoVueloId = (int?)Domain.General.Enums.Enum.EstadoVuelo.Programado;
-                    await _iUnitOfWork.Repository<Vuelo>().AdicionarAsync(createUpdateEntidad);
-                }
+                // Crea y garantiza que el atributo primario vaya null
+                createEntidad.VueloId = null;
+                createEntidad.EstadoVueloId = (int?)Domain.General.Enums.Enum.EstadoVuelo.Programado;
+                createEntidad.UsuarioCreacionId = userId;
+                createEntidad.VueloFechaCreacion = DateTime.Now;
+                await _iUnitOfWork.Repository<Vuelo>().AdicionarAsync(createEntidad);
                 await _iUnitOfWork.SaveChangesAsync();
                 
                 // Guarda inmediatamente el historico del vuelo
-                await CreateVueloHistorico(createUpdateEntidad);
+                await CreateVueloHistorico(createEntidad);
+
+                // Obtiene los asientos del avión guardado en el vuelo y los guarda en la entidad VueloAsiento (Solo se crea con el vuelo, no es para actualizar en esta petición)
+                IEnumerable<AsientoAvion> asientosAvion = new List<AsientoAvion>();
+                ParamsConsultarAsientoAvion paramsConsultarAsientoAvion = new ParamsConsultarAsientoAvion();
+                paramsConsultarAsientoAvion.AvionId = createEntidad.AvionId;
+                paramsConsultarAsientoAvion.AsientoAvionEstado = true;
+                asientosAvion = await _iAvionService.GetWithParamsAsync(paramsConsultarAsientoAvion);
+
+                // Recorre cada asiento y lo crea
+                List<VueloAsiento> listadoVueloAsientosAgregar = new List<VueloAsiento>();
+                foreach (AsientoAvion asientoActual in asientosAvion)
+                {
+                    VueloAsiento vueloAsiento = new VueloAsiento();
+                    vueloAsiento.VueloAsientoId = null;
+                    vueloAsiento.VueloId = (int)createEntidad.VueloId!;
+                    vueloAsiento.AsientoAvionId = (int)asientoActual.AsientoAvionId!;
+                    vueloAsiento.VueloAsientoReservado = false;
+                    vueloAsiento.VueloAsientoComprado = false;
+                    vueloAsiento.VueloAsientoBloqueadoHasta = null;
+
+                    listadoVueloAsientosAgregar.Add(vueloAsiento);
+                }
+                await _iUnitOfWork.Repository<VueloAsiento>().AdicionarMasivoAsync(listadoVueloAsientosAgregar);
+                await _iUnitOfWork.SaveChangesAsync();
 
                 scope.Complete();
-                return createUpdateEntidad;
+                return createEntidad;
             }
         }
 
-        /// <inheritdoc />
-        public async Task<IEnumerable<Compra>> GetWithParamsAsync(ParamsConsultarCompra paramsSearch, int? userId = null)
-        {
-            Compra entidad = _iMapper.Map<Compra>(paramsSearch);
-            entidad.UsuarioId = userId;
-            Expression<Func<Compra, bool>> filtro = entidad.ToFilterExpression<Compra>();
-            return await _iUnitOfWork.Repository<Compra>().ConsultarListaAsync(filtro);
-        }
-
-        /// <inheritdoc />
-        public async Task<Compra> CreateAsync(ParamsCrearActualizarCompra paramsCreateUpdate, int? userId = null)
+        public async Task<Vuelo> UpdateAsync(ParamsActualizarVuelo paramsUpdate, int? userId = null)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
-                await ValidarCamposCrearActualizarCompra(paramsCreateUpdate);
-                IEnumerable<Compra> listaEntidad = new List<Compra>();
-                Compra createUpdateEntidad = _iMapper.Map<Compra>(paramsCreateUpdate);
-                createUpdateEntidad.UsuarioId = userId;
-                createUpdateEntidad.CompraFecha = DateTime.Now;
+                await ValidarCamposActualizarVuelo(paramsUpdate);
 
-                if (paramsCreateUpdate.CompraId != null && paramsCreateUpdate.CompraId > 0)
-                {
-                    await _iUnitOfWork.Repository<Compra>().ActualizarAsync(createUpdateEntidad);
-                }
-                else
-                {
-                    // Crea y garantiza que el atributo primario vaya null
-                    createUpdateEntidad.CompraId = null;
-                    createUpdateEntidad.EstadoCompraId = (int?)Domain.General.Enums.Enum.EstadoCompra.Comprado;
-                    await _iUnitOfWork.Repository<Compra>().AdicionarAsync(createUpdateEntidad);
-                }
+                // Obtiene el objeto del vuelo que se desea consultar
+                Vuelo vueloActualizar = new Vuelo();
+                vueloActualizar.VueloId = paramsUpdate.VueloId;
+                Expression<Func<Vuelo, bool>> filtro = vueloActualizar.ToFilterExpression<Vuelo>();
+                vueloActualizar = await _iUnitOfWork.Repository<Vuelo>().ConsultarUnoAsync(filtro);
+                vueloActualizar.VueloCodigo = paramsUpdate.VueloCodigo;
+                vueloActualizar.CiudadOrigenId = paramsUpdate.CiudadOrigenId;
+                vueloActualizar.CiudadDestinoId = paramsUpdate.CiudadDestinoId;
+                vueloActualizar.VueloPrecio = paramsUpdate.VueloPrecio;
+                vueloActualizar.VueloDescuento = paramsUpdate.VueloDescuento;
+                vueloActualizar.VueloFechaHoraSalida = paramsUpdate.VueloFechaHoraSalida;
+                vueloActualizar.VueloFechaHoraLlegada = paramsUpdate.VueloFechaHoraLlegada;
+
+                await _iUnitOfWork.Repository<Vuelo>().ActualizarAsync(vueloActualizar);
                 await _iUnitOfWork.SaveChangesAsync();
 
-                // Guarda inmediatamente el historico de la compra
-                await CreateCompraHistorico(createUpdateEntidad);
+                // Guarda inmediatamente el historico del vuelo
+                vueloActualizar.UsuarioCreacionId = userId;
+                await CreateVueloHistorico(vueloActualizar);
 
                 scope.Complete();
-                return createUpdateEntidad;
+                return vueloActualizar;
             }
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<CompraHistorico>> GetWithParamsAsync(ParamsConsultarCompraHistorico paramsSearch, int? userId = null)
+        public async Task<IEnumerable<BusquedaVueloHistoricoPoco>> GetWithParamsAsync(ParamsConsultarVueloHistorico paramsSearch, int? userId = null)
         {
-            CompraHistorico entidad = _iMapper.Map<CompraHistorico>(paramsSearch);
-            Expression<Func<CompraHistorico, bool>> filtro = entidad.ToFilterExpression<CompraHistorico>();
-            return await _iUnitOfWork.Repository<CompraHistorico>().ConsultarListaAsync(filtro);
+            return await _iUnitOfWork.DLVueloPersonalizado.ConsultarVueloHistorico(paramsSearch);
         }
 
-        /// <inheritdoc />
-        public async Task<IEnumerable<CompraDetalle>> GetWithParamsAsync(ParamsConsultarCompraDetalle paramsSearch, int? userId = null)
-        {
-            CompraDetalle entidad = _iMapper.Map<CompraDetalle>(paramsSearch);
-            Expression<Func<CompraDetalle, bool>> filtro = entidad.ToFilterExpression<CompraDetalle>();
-            return await _iUnitOfWork.Repository<CompraDetalle>().ConsultarListaAsync(filtro);
-        }
-
-        /// <inheritdoc />
-        public async Task<IEnumerable<VueloHistorico>> GetWithParamsAsync(ParamsConsultarVueloHistorico paramsSearch, int? userId = null)
-        {
-            VueloHistorico entidad = _iMapper.Map<VueloHistorico>(paramsSearch);
-            Expression<Func<VueloHistorico, bool>> filtro = entidad.ToFilterExpression<VueloHistorico>();
-            return await _iUnitOfWork.Repository<VueloHistorico>().ConsultarListaAsync(filtro);
-        }
-
-        /// <inheritdoc />
-        public async Task<IEnumerable<CompraDetalleHistorico>> GetWithParamsAsync(ParamsConsultarCompraDetalleHistorico paramsSearch, int? userId = null)
-        {
-            CompraDetalleHistorico entidad = _iMapper.Map<CompraDetalleHistorico>(paramsSearch);
-            Expression<Func<CompraDetalleHistorico, bool>> filtro = entidad.ToFilterExpression<CompraDetalleHistorico>();
-            return await _iUnitOfWork.Repository<CompraDetalleHistorico>().ConsultarListaAsync(filtro);
-        }
-
-        public async Task<Vuelo> ActualizarEstadoVuelo(ParamsActualizarEstadoVuelo updateEstado) 
+        public async Task<Vuelo> ActualizarEstadoVuelo(ParamsActualizarEstadoVuelo updateEstado, int userId) 
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
@@ -187,6 +212,9 @@
                 await _iUnitOfWork.Repository<Vuelo>().ActualizarAsync(objetoEntidad);
                 await _iUnitOfWork.SaveChangesAsync();
 
+                objetoEntidad.UsuarioCreacionId = userId;
+                objetoEntidad.VueloFechaCreacion = DateTime.Now;
+
                 // Guarda inmediatamente el historico del vuelo con los cambios realizados
                 await CreateVueloHistorico(objetoEntidad);
 
@@ -195,141 +223,13 @@
             }
         }
 
-        /// <inheritdoc/>
-        public async Task<IEnumerable<VueloAsiento>> ReservarAsientosAsync(ParamsReservarAsientos paramsReservar)
+        /// <summary>Contrato personalizado para la consulta de los asientos de un vuelo.</summary>
+        /// <param name="searchSeatFlight">Parametros con el que se buscara los asientos de un vuelo bajo ciertos criterios.</param>
+        /// <returns>Lista AsientosVueloPoco con la información de los asientos del vuelo buscados.</returns>
+        public async Task<IEnumerable<AsientosVueloPoco>> ConsultarVueloAsientoPersonalizado(ParamsBusquedaAsientoVuelo searchSeatFlight)
         {
-            if (paramsReservar == null || paramsReservar.ListaAsientoVuelo == null || !paramsReservar.ListaAsientoVuelo.Any())
-                throw new ArgumentException("Debe especificar al menos un asiento para reservar.");
-
-            using (var scope = new TransactionScope(TransactionScopeOption.Required,new TimeSpan(0, 5, 0),TransactionScopeAsyncFlowOption.Enabled))
-            {
-                var listaIds = paramsReservar.ListaAsientoVuelo.Select(a => a.VueloAsientoId).ToList();
-
-                VueloAsiento entidad = new VueloAsiento();
-                entidad.VueloId = paramsReservar.VueloId;
-                Expression<Func<VueloAsiento, bool>> filtro = entidad.ToFilterExpression<VueloAsiento>();
-                IEnumerable<VueloAsiento> asientos = await _iUnitOfWork.Repository<VueloAsiento>().ConsultarListaAsync(filtro);
-
-                // Validar que todos los asientos solicitados existen en ese vuelo
-                var idsAsientosVuelo = asientos.Select(a => a.VueloAsientoId).ToHashSet();
-                var idsNoEncontrados = listaIds.Where(id => !idsAsientosVuelo.Contains(id)).ToList();
-
-                if (idsNoEncontrados.Any())
-                    throw new InvalidOperationException($"Uno o más asientos no pertenecen al vuelo (IDs: {string.Join(", ", idsNoEncontrados)}).");
-
-                var ahora = DateTime.Now;
-                var bloqueados = new List<VueloAsiento>();
-
-                foreach (var asiento in asientos)
-                {
-                    // 2️ Validar concurrencia
-                    var paramAsiento = paramsReservar.ListaAsientoVuelo.First(x => x.VueloAsientoId == asiento.VueloAsientoId);
-                    if (paramAsiento.RowVersion != null && !asiento.RowVersion.SequenceEqual(paramAsiento.RowVersion))
-                        throw new DbUpdateConcurrencyException($"El asiento {asiento.VueloAsientoId} fue modificado por otro proceso.");
-
-                    // 3️ Validar si ya está bloqueado
-                    if (asiento.VueloAsientoBloqueadoHasta.HasValue && asiento.VueloAsientoBloqueadoHasta.Value > ahora)
-                        throw new InvalidOperationException($"El asiento {asiento.VueloAsientoId} ya está bloqueado temporalmente.");
-
-                    // 4️ Marcar el bloqueo
-                    asiento.VueloAsientoBloqueadoHasta = ahora.AddMinutes(5); // bloqueado por 5 minutos
-
-                    // Actualiza en contexto
-                    await _iUnitOfWork.Repository<VueloAsiento>().ActualizarAsync(asiento);
-                    bloqueados.Add(asiento);
-                }
-
-                await _iUnitOfWork.SaveChangesAsync();
-
-                scope.Complete();
-                return bloqueados;
-            }
+            return await _iUnitOfWork.DLVueloPersonalizado.ConsultarVuelosAsientos(searchSeatFlight);
         }
-
-        public async Task<Compra> ComprarAsientosAsync(ParamsCompraAsientos paramsCompra)
-        {
-            using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
-            {
-                if (paramsCompra == null || paramsCompra.DetalleAsientos == null || !paramsCompra.DetalleAsientos.Any())
-                    throw new ArgumentException("Debe especificar al menos un asiento para la compra.");
-
-                var listaIds = paramsCompra.DetalleAsientos.Select(a => a.VueloAsientoId).ToList();
-
-                // 1️ Consultar los asientos asociados al vuelo
-                VueloAsiento entidadFiltro = new() { VueloId = paramsCompra.VueloId };
-                Expression<Func<VueloAsiento, bool>> filtro = entidadFiltro.ToFilterExpression<VueloAsiento>();
-                IEnumerable<VueloAsiento> asientosVuelo = await _iUnitOfWork.Repository<VueloAsiento>().ConsultarListaAsync(filtro);
-
-                // 2️ Validar que los asientos pertenezcan al vuelo
-                var idsAsientosVuelo = asientosVuelo.Select(a => a.VueloAsientoId).ToHashSet();
-                var idsNoEncontrados = listaIds.Where(id => !idsAsientosVuelo.Contains(id)).ToList();
-                if (idsNoEncontrados.Any())
-                    throw new InvalidOperationException($"Uno o más asientos no pertenecen al vuelo (IDs: {string.Join(", ", idsNoEncontrados)}).");
-
-                // 3️ Obtener solo los asientos que se van a comprar
-                var asientosAComprar = asientosVuelo.Where(a => listaIds.Contains(a.VueloAsientoId)).ToList();
-
-                // 4️ Validar concurrencia y disponibilidad
-                foreach (var asientoParam in paramsCompra.DetalleAsientos)
-                {
-                    var asiento = asientosAComprar.First(a => a.VueloAsientoId == asientoParam.VueloAsientoId);
-
-                    if (asientoParam.RowVersion != null && !asiento.RowVersion.SequenceEqual(asientoParam.RowVersion))
-                        throw new InvalidOperationException($"El asiento {asiento.VueloAsientoId} fue modificado por otro usuario.");
-
-                    if (asiento.VueloAsientoComprado)
-                        throw new InvalidOperationException($"El asiento {asiento.VueloAsientoId} ya fue comprado.");
-
-                    if (asiento.VueloAsientoBloqueadoHasta.HasValue && asiento.VueloAsientoBloqueadoHasta > DateTime.Now)
-                        throw new InvalidOperationException($"El asiento {asiento.VueloAsientoId} está bloqueado temporalmente.");
-                }
-
-                // 5️ Crear la compra principal
-                Compra nuevaCompra = new Compra
-                {
-                    UsuarioId = paramsCompra.UsuarioId,
-                    VueloId = paramsCompra.VueloId,
-                    EstadoCompraId = paramsCompra.EstadoCompraId,
-                    MetodoPagoId = paramsCompra.MetodoPagoId,
-                    CompraFecha = DateTime.Now,
-                    CompraTotal = paramsCompra.CompraTotal
-                };
-
-                await _iUnitOfWork.Repository<Compra>().AdicionarAsync(nuevaCompra);
-                await _iUnitOfWork.SaveChangesAsync(); // Guarda para obtener CompraId
-
-                // 6️⃣ Actualizar los asientos como comprados
-                foreach (var asiento in asientosAComprar)
-                {
-                    asiento.VueloAsientoReservado = false;
-                    asiento.VueloAsientoComprado = true;
-                    asiento.VueloAsientoBloqueadoHasta = null;
-
-                    await _iUnitOfWork.Repository<VueloAsiento>().ActualizarAsync(asiento);
-                }
-
-                // 7️⃣ Crear los detalles de compra
-                foreach (var item in paramsCompra.DetalleAsientos)
-                {
-                    var detalle = new CompraDetalle
-                    {
-                        CompraId = nuevaCompra.CompraId,
-                        VueloAsientoId = item.VueloAsientoId,
-                        CompraDetalleNombrePasajero = item.CompraDetalleNombrePasajero,
-                        CompraDetalleIdentificacionPasajero = item.CompraDetalleIdentificacionPasajero,
-                        CompraDetallePrecio = item.CompraDetallePrecio
-                    };
-
-                    await _iUnitOfWork.Repository<CompraDetalle>().AdicionarAsync(detalle);
-                }
-
-                await _iUnitOfWork.SaveChangesAsync();
-                scope.Complete();
-
-                return nuevaCompra;
-            }
-        }
-
         #endregion
 
         #region MetodosPropios
@@ -352,44 +252,29 @@
             await _iUnitOfWork.SaveChangesAsync();
         }
 
-        private async Task CreateCompraHistorico(Compra createHistorico)
-        {
-            CompraHistorico compraHistorico = new CompraHistorico();
-            compraHistorico.CompraId = createHistorico.CompraId;
-            compraHistorico.EstadoCompraId = createHistorico.EstadoCompraId;
-            compraHistorico.CompraHistoricoFechaRegistro = DateTime.Now;
-            await _iUnitOfWork.Repository<CompraHistorico>().AdicionarAsync(compraHistorico);
-            await _iUnitOfWork.SaveChangesAsync();
-        }
-
-        private async Task CreateCompraDetalleHistorico(CompraDetalle createHistorico)
-        {
-            CompraDetalleHistorico compraDetalleHistorico = new CompraDetalleHistorico();
-            compraDetalleHistorico.CompraDetalleId = createHistorico.CompraDetalleId;
-            compraDetalleHistorico.CompraDetalleHistoricoNombrePasajero = createHistorico.CompraDetalleNombrePasajero;
-            compraDetalleHistorico.CompraDetalleHistoricoIdentificacionPasajero = createHistorico.CompraDetalleIdentificacionPasajero;
-            compraDetalleHistorico.CompraDetalleHistoricoFechaRegistro = DateTime.Now;
-            await _iUnitOfWork.Repository<CompraDetalleHistorico>().AdicionarAsync(compraDetalleHistorico);
-            await _iUnitOfWork.SaveChangesAsync();
-        }
-
         private async Task<IEnumerable<EstadoVuelo>> ConsultaEstadoVuelo()
         {
             return await _iUnitOfWork.Repository<EstadoVuelo>().ConsultarTodosAsync();
         }
 
-        private async Task<IEnumerable<EstadoCompra>> ConsultaEstadoCompra()
+        private async Task<IEnumerable<VueloAsiento>> ConsultaVueloAsientos(int vueloId)
         {
-            return await _iUnitOfWork.Repository<EstadoCompra>().ConsultarTodosAsync();
+            VueloAsiento entidad = new VueloAsiento();
+            entidad.VueloId = vueloId;
+            entidad.AsientoAvionId = null;
+            entidad.VueloAsientoReservado = null;
+            entidad.VueloAsientoComprado = null;
+            Expression<Func<VueloAsiento, bool>> filtro = entidad.ToFilterExpression<VueloAsiento>();
+            return await _iUnitOfWork.Repository<VueloAsiento>().ConsultarListaAsync(filtro);
         }
 
         #endregion
 
         #region ValidacionCampos
-        /// <summary>Valida los campos obligatorios para realizar la creacion o actualización del vuelo.</summary>
-        /// <param name="parametrosCrearActualizarVuelo">El objeto de tipo ParamsCrearActualizarVuelo que contiene los detalles a validar.</param>
+        /// <summary>Valida los campos obligatorios para realizar la creacion del vuelo.</summary>
+        /// <param name="parametrosCrearVuelo">El objeto de tipo ParamsCrearVuelo que contiene los detalles a validar.</param>
         /// <exception cref="ValidationException">Lanza una excepción si alguno de los campos obligatorios es nulo o tiene un valor inválido.</exception>
-        private async Task ValidarCamposCrearActualizarVuelo(ParamsCrearActualizarVuelo parametrosCrearActualizarVuelo)
+        private async Task ValidarCamposCrearVuelo(ParamsCrearVuelo parametrosCrearVuelo)
         {
             string errores = string.Empty;
             IEnumerable<Vuelo> Resultado = new List<Vuelo>();
@@ -397,72 +282,36 @@
             Resultado = await GetWithParamsAsync(Existentes);
             IEnumerable<EstadoVuelo> ResultadoEstadoVuelos = await ConsultaEstadoVuelo();
 
-            if (parametrosCrearActualizarVuelo.VueloId != null && parametrosCrearActualizarVuelo.VueloId > 0)
-            {
-                // Valida si el Id del vuelo existe
-                if (Resultado.Where(x => x.VueloId == parametrosCrearActualizarVuelo.VueloId).Count() == 0)
-                {
-                    errores += string.Format(DefaultMessages.DataNotFound, "El vuelo");
-                }
-            }
-
             // Validar el codigo del vuelo
             if (string.IsNullOrEmpty(errores))
             {
-                if (string.IsNullOrEmpty(parametrosCrearActualizarVuelo.VueloCodigo))
+                if (string.IsNullOrEmpty(parametrosCrearVuelo.VueloCodigo))
                 {
                     errores += string.Format(DefaultMessages.FieldRequiredWithName, "codigo");
                 }
                 else
                 {
                     // Valida si el codigo del vuelo ya existe en el sistema
-                    if (Resultado.Any(x => x.VueloCodigo.Trim().ToUpper() == parametrosCrearActualizarVuelo.VueloCodigo.Trim().ToUpper() &&
-                                                                        x.VueloId != parametrosCrearActualizarVuelo.VueloId))
+                    if (Resultado.Any(x => x.VueloCodigo.Trim().ToUpper() == parametrosCrearVuelo.VueloCodigo.Trim().ToUpper()))
                     {
-                        errores += string.Format(DefaultMessages.AlreadyExistsData, $"el codigo de vuelo '{parametrosCrearActualizarVuelo.VueloCodigo.Trim()}'");
+                        errores += string.Format(DefaultMessages.AlreadyExistsData, $"el codigo de vuelo '{parametrosCrearVuelo.VueloCodigo.Trim()}'");
                     }
-                }
-            }
-
-            // Validar el estado de vuelo
-            if (string.IsNullOrEmpty(errores))
-            {
-                if (parametrosCrearActualizarVuelo.EstadoVueloId == null || parametrosCrearActualizarVuelo.EstadoVueloId == 0)
-                {
-                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "estado vuelo");
-                }
-                else
-                {
-                    // Valida si el estado de vuelo existe
-                    if (!ResultadoEstadoVuelos.Any(x => x.EstadoVueloId == parametrosCrearActualizarVuelo.EstadoVueloId))
-                    {
-                        errores += string.Format(DefaultMessages.DataNotFound, "El estado de vuelo");
-                    }
-                }
-            }
-
-            // Valida que el estado del vuelo sea el correcto para la creación del mismo
-            if (string.IsNullOrEmpty(errores))
-            {
-                if (parametrosCrearActualizarVuelo.EstadoVueloId != (int?)Domain.General.Enums.Enum.EstadoVuelo.Programado && (parametrosCrearActualizarVuelo.VueloId == null || parametrosCrearActualizarVuelo.VueloId == 0))
-                {
-                    errores += "El estado de vuelo no es el correcto para la creación del vuelo.";
                 }
             }
 
             // Validar el avion
             if (string.IsNullOrEmpty(errores))
             {
-                if (parametrosCrearActualizarVuelo.AvionId == null || parametrosCrearActualizarVuelo.AvionId == 0)
+                if (parametrosCrearVuelo.AvionId == null || parametrosCrearVuelo.AvionId == 0)
                 {
                     errores += string.Format(DefaultMessages.FieldRequiredWithName, "avión");
                 }
                 else
                 {
                     // Consulta los aviones para validar si existe o no
-                    IEnumerable<Avion> aviones = new List<Avion>();
+                    IEnumerable<BusquedaAvionPoco> aviones = new List<BusquedaAvionPoco>();
                     ParamsConsultarAvion paramsConsultarAvion = new ParamsConsultarAvion();
-                    paramsConsultarAvion.AvionId = parametrosCrearActualizarVuelo.AvionId;
+                    paramsConsultarAvion.AvionId = parametrosCrearVuelo.AvionId;
                     aviones = await _iAvionService.GetWithParamsAsync(paramsConsultarAvion);
 
                     if (aviones.Count() == 0)
@@ -476,9 +325,9 @@
             if (string.IsNullOrEmpty(errores))
             {
                 // Consulta los aviones para validar si existe o no
-                IEnumerable<Avion> aviones = new List<Avion>();
+                IEnumerable<BusquedaAvionPoco> aviones = new List<BusquedaAvionPoco>();
                 ParamsConsultarAvion paramsConsultarAvion = new ParamsConsultarAvion();
-                paramsConsultarAvion.AvionId = parametrosCrearActualizarVuelo.AvionId;
+                paramsConsultarAvion.AvionId = parametrosCrearVuelo.AvionId;
                 paramsConsultarAvion.AvionEstado = true;
                 aviones = await _iAvionService.GetWithParamsAsync(paramsConsultarAvion);
 
@@ -488,19 +337,45 @@
                 }
             }
 
+            // Validar que el avión por lo menos tenga x cantidad de asientos disponibles
+            if (string.IsNullOrEmpty(errores))
+            {
+                // Obtiene el parametro que define cuantos asientos disponibles son el minimo que debe tener el avión para poderse usar en un vuelo
+                IEnumerable<Parametros> MinimoAsientosAvionVuelo;
+                ParamsConsultarParametros parametrosBusqueda = new ParamsConsultarParametros();
+                parametrosBusqueda.ParametrosNombre = "MinimoAsientosAvionVuelo";
+                MinimoAsientosAvionVuelo = await _iConfiguracionService.GetWithParamsAsync(parametrosBusqueda);
+
+                if (MinimoAsientosAvionVuelo.Count() > 0)
+                {
+                    // Consulta la cantidad de asientos disponibles que tiene el avión asociado al vuelo
+                    IEnumerable<AsientoAvion> asientosAvion = new List<AsientoAvion>();
+                    ParamsConsultarAsientoAvion paramsConsultarAsientoAvion = new ParamsConsultarAsientoAvion();
+                    paramsConsultarAsientoAvion.AvionId = parametrosCrearVuelo.AvionId;
+                    paramsConsultarAsientoAvion.AsientoAvionEstado = true;
+                    asientosAvion = await _iAvionService.GetWithParamsAsync(paramsConsultarAsientoAvion);
+                    int? valorParametro = Convert.ToInt32(MinimoAsientosAvionVuelo.FirstOrDefault()!.ParametrosValor);
+
+                    if (asientosAvion.Count() < valorParametro)
+                    {
+                        errores += "La cantidad minima de asientos disponibles del avión asociado al vuelo debe ser: "+ valorParametro.ToString();
+                    }
+                }
+            }
+
             // Validar la ciudad de origen
             if (string.IsNullOrEmpty(errores))
             {
-                if (parametrosCrearActualizarVuelo.CiudadOrigenId == null || parametrosCrearActualizarVuelo.CiudadOrigenId == 0)
+                if (parametrosCrearVuelo.CiudadOrigenId == null || parametrosCrearVuelo.CiudadOrigenId == 0)
                 {
                     errores += string.Format(DefaultMessages.FieldRequiredWithName, "ciudad de origen");
                 }
                 else
                 {
                     // Valida si la ciudad ingresada existe
-                    IEnumerable<Ciudad> ciudades = new List<Ciudad>();
+                    IEnumerable<BusquedaCiudadPoco> ciudades = new List<BusquedaCiudadPoco>();
                     ParamsConsultarCiudad paramsConsultarCiudad = new ParamsConsultarCiudad();
-                    paramsConsultarCiudad.CiudadId = parametrosCrearActualizarVuelo.CiudadOrigenId;
+                    paramsConsultarCiudad.CiudadId = parametrosCrearVuelo.CiudadOrigenId;
                     ciudades = await _iAdministracionService.GetWithParamsAsync(paramsConsultarCiudad);
 
                     if (ciudades.Count() == 0)
@@ -514,9 +389,9 @@
             if (string.IsNullOrEmpty(errores))
             {
                 // Valida si la ciudad ingresada existe
-                IEnumerable<Ciudad> ciudades = new List<Ciudad>();
+                IEnumerable<BusquedaCiudadPoco> ciudades = new List<BusquedaCiudadPoco>();
                 ParamsConsultarCiudad paramsConsultarCiudad = new ParamsConsultarCiudad();
-                paramsConsultarCiudad.CiudadId = parametrosCrearActualizarVuelo.CiudadOrigenId;
+                paramsConsultarCiudad.CiudadId = parametrosCrearVuelo.CiudadOrigenId;
                 paramsConsultarCiudad.CiudadEstado = true;
                 ciudades = await _iAdministracionService.GetWithParamsAsync(paramsConsultarCiudad);
 
@@ -530,10 +405,10 @@
             if (string.IsNullOrEmpty(errores))
             {
                 // Consulta los aviones para validar si existe o no
-                IEnumerable<Avion> aviones = new List<Avion>();
+                IEnumerable<BusquedaAvionPoco> aviones = new List<BusquedaAvionPoco>();
                 ParamsConsultarAvion paramsConsultarAvion = new ParamsConsultarAvion();
-                paramsConsultarAvion.AvionId = parametrosCrearActualizarVuelo.AvionId;
-                paramsConsultarAvion.CiudadId = parametrosCrearActualizarVuelo.CiudadOrigenId;
+                paramsConsultarAvion.AvionId = parametrosCrearVuelo.AvionId;
+                paramsConsultarAvion.CiudadId = parametrosCrearVuelo.CiudadOrigenId;
                 aviones = await _iAvionService.GetWithParamsAsync(paramsConsultarAvion);
 
                 if (aviones.Count() == 0)
@@ -545,16 +420,16 @@
             // Validar la ciudad de destino
             if (string.IsNullOrEmpty(errores))
             {
-                if (parametrosCrearActualizarVuelo.CiudadDestinoId == null || parametrosCrearActualizarVuelo.CiudadDestinoId == 0)
+                if (parametrosCrearVuelo.CiudadDestinoId == null || parametrosCrearVuelo.CiudadDestinoId == 0)
                 {
                     errores += string.Format(DefaultMessages.FieldRequiredWithName, "ciudad de destino");
                 }
                 else
                 {
                     // Valida si la ciudad ingresada existe
-                    IEnumerable<Ciudad> ciudades = new List<Ciudad>();
+                    IEnumerable<BusquedaCiudadPoco> ciudades = new List<BusquedaCiudadPoco>();
                     ParamsConsultarCiudad paramsConsultarCiudad = new ParamsConsultarCiudad();
-                    paramsConsultarCiudad.CiudadId = parametrosCrearActualizarVuelo.CiudadDestinoId;
+                    paramsConsultarCiudad.CiudadId = parametrosCrearVuelo.CiudadDestinoId;
                     ciudades = await _iAdministracionService.GetWithParamsAsync(paramsConsultarCiudad);
 
                     if (ciudades.Count() == 0)
@@ -568,9 +443,9 @@
             if (string.IsNullOrEmpty(errores))
             {
                 // Valida si la ciudad ingresada existe
-                IEnumerable<Ciudad> ciudades = new List<Ciudad>();
+                IEnumerable<BusquedaCiudadPoco> ciudades = new List<BusquedaCiudadPoco>();
                 ParamsConsultarCiudad paramsConsultarCiudad = new ParamsConsultarCiudad();
-                paramsConsultarCiudad.CiudadId = parametrosCrearActualizarVuelo.CiudadDestinoId;
+                paramsConsultarCiudad.CiudadId = parametrosCrearVuelo.CiudadDestinoId;
                 paramsConsultarCiudad.CiudadEstado = true;
                 ciudades = await _iAdministracionService.GetWithParamsAsync(paramsConsultarCiudad);
 
@@ -583,7 +458,7 @@
             // Validar que la ciudad origen y destino no sea la misma
             if (string.IsNullOrEmpty(errores))
             {
-                if (parametrosCrearActualizarVuelo.CiudadOrigenId == parametrosCrearActualizarVuelo.CiudadDestinoId)
+                if (parametrosCrearVuelo.CiudadOrigenId == parametrosCrearVuelo.CiudadDestinoId)
                 {
                     errores += "La ciudad de origen y ciudad destino deben ser diferentes";
                 }
@@ -592,13 +467,13 @@
             // Validar el precio del vuelo por asiento
             if (string.IsNullOrEmpty(errores)) 
             {
-                if (parametrosCrearActualizarVuelo.VueloPrecio == null || parametrosCrearActualizarVuelo.VueloPrecio == 0)
+                if (parametrosCrearVuelo.VueloPrecio == null || parametrosCrearVuelo.VueloPrecio == 0)
                 {
                     errores += string.Format(DefaultMessages.FieldRequiredWithName, "precio");
                 }
                 else
                 {
-                    if (parametrosCrearActualizarVuelo.VueloPrecio <= 0)
+                    if (parametrosCrearVuelo.VueloPrecio <= 0)
                     {
                         errores += string.Format(DefaultMessages.InvalidNumberMin, "El precio", "0");
                     }
@@ -609,9 +484,9 @@
             // Validar el precio de descuento (Si viene que sea mayor a 0.01...)
             if (string.IsNullOrEmpty(errores))
             {
-                if (parametrosCrearActualizarVuelo.VueloDescuento != null)
+                if (parametrosCrearVuelo.VueloDescuento != null)
                 {
-                    if (parametrosCrearActualizarVuelo.VueloDescuento < 0 || parametrosCrearActualizarVuelo.VueloDescuento > 100)
+                    if (parametrosCrearVuelo.VueloDescuento < 0 || parametrosCrearVuelo.VueloDescuento > 100)
                     {
                         errores += string.Format(DefaultMessages.RangeError, "El porcentaje de descuento", "0", "100");
                     }
@@ -621,15 +496,15 @@
             // Validar fecha de salida 
             if (string.IsNullOrEmpty(errores))
             {
-                if (parametrosCrearActualizarVuelo.VueloFechaHoraSalida == null)
+                if (parametrosCrearVuelo.VueloFechaHoraSalida == null)
                 {
                     errores += string.Format(DefaultMessages.FieldRequiredWithName, "fecha salida");
                 }
                 else
                 {
-                    if (parametrosCrearActualizarVuelo.VueloFechaHoraSalida < DateTime.Now)
+                    if (parametrosCrearVuelo.VueloFechaHoraSalida <= DateTime.Now)
                     {
-                        errores += "La fecha de salida no debe ser menor a la hora actual";
+                        errores += "La fecha de salida no debe ser menor o igual a la hora actual";
                     }
                 }
             }
@@ -637,15 +512,238 @@
             // Validar fecha de llegada 
             if (string.IsNullOrEmpty(errores))
             {
-                if (parametrosCrearActualizarVuelo.VueloFechaHoraLlegada == null)
+                if (parametrosCrearVuelo.VueloFechaHoraLlegada == null)
                 {
                     errores += string.Format(DefaultMessages.FieldRequiredWithName, "fecha llegada");
                 }
                 else
                 {
-                    if (parametrosCrearActualizarVuelo.VueloFechaHoraLlegada < parametrosCrearActualizarVuelo.VueloFechaHoraSalida)
+                    if (parametrosCrearVuelo.VueloFechaHoraLlegada <= parametrosCrearVuelo.VueloFechaHoraSalida)
                     {
-                        errores += "La fecha de llegada no debe ser menor a la fecha de salida";
+                        errores += "La fecha de llegada no debe ser menor o igual a la fecha de salida";
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(errores))
+            {
+                throw new ValidationException(errores);
+            }
+        }
+
+        /// <summary>Valida los campos obligatorios para realizar la actualización del vuelo.</summary>
+        /// <param name="parametrosActualizarrVuelo">El objeto de tipo ParamsActualizarVuelo que contiene los detalles a validar.</param>
+        /// <exception cref="ValidationException">Lanza una excepción si alguno de los campos obligatorios es nulo o tiene un valor inválido.</exception>
+        private async Task ValidarCamposActualizarVuelo(ParamsActualizarVuelo parametrosActualizarVuelo)
+        {
+            string errores = string.Empty;
+            // Obtiene los vuelos del sistema
+            IEnumerable<Vuelo> Resultado = new List<Vuelo>();
+            ParamsConsultarVuelo Existentes = new ParamsConsultarVuelo();
+            Resultado = await GetWithParamsAsync(Existentes);
+
+            // Valida si existe el vuelo en el sistema
+            if (Resultado.Where(x => x.VueloId == parametrosActualizarVuelo.VueloId).Count() == 0)
+            {
+                errores += string.Format(DefaultMessages.DataNotFound, "El vuelo");
+            }
+
+            // Si el vuelo tiene un estado diferente de programado, no se podrá modificar codigoVuelo, Ciudades o Fechas
+            if (string.IsNullOrEmpty(errores))
+            {
+                // Obtiene el vuelo
+                Vuelo vueloActualizar = new Vuelo();
+                vueloActualizar = Resultado.Where(x => x.VueloId == parametrosActualizarVuelo.VueloId).FirstOrDefault();
+
+                bool codigo = vueloActualizar.VueloCodigo == parametrosActualizarVuelo.VueloCodigo ? true : false;
+                bool ciudadOrigen = vueloActualizar.CiudadOrigenId == parametrosActualizarVuelo.CiudadOrigenId ? true : false;
+                bool ciudadDestino = vueloActualizar.CiudadDestinoId == parametrosActualizarVuelo.CiudadDestinoId ? true : false;
+                bool fechaHoraSalida = vueloActualizar.VueloFechaHoraSalida == parametrosActualizarVuelo.VueloFechaHoraSalida ? true : false;
+                bool fechaHoraLlegada = vueloActualizar.VueloFechaHoraLlegada == parametrosActualizarVuelo.VueloFechaHoraLlegada ? true : false;
+
+                bool precio = vueloActualizar.VueloPrecio == parametrosActualizarVuelo.VueloPrecio ? true : false;
+                bool descuento = vueloActualizar.VueloDescuento == parametrosActualizarVuelo.VueloDescuento ? true : false;
+
+                // Si tratan de cambiar el codigo de vuelo, ciudades o fechas se debe validar que no esté diferente de programado 
+                if (!codigo || !ciudadOrigen || !ciudadDestino || !fechaHoraSalida || !fechaHoraLlegada)
+                {
+                    if (vueloActualizar.EstadoVueloId != (int)Domain.General.Enums.Enum.EstadoVuelo.Programado)
+                    {
+                        errores += "No se permite actualizar el vuelo, ya que se encuentra en un estado diferente de programado";
+                    }
+                }
+                else if (!precio || !descuento)
+                {
+                    // Si tratan de cambiar el precio o descuento se debe valir que sea diferente de programado, disponible o cerrado
+                    if (vueloActualizar.EstadoVueloId != (int)Domain.General.Enums.Enum.EstadoVuelo.Programado &&
+                        vueloActualizar.EstadoVueloId != (int)Domain.General.Enums.Enum.EstadoVuelo.Disponible &&
+                        vueloActualizar.EstadoVueloId != (int)Domain.General.Enums.Enum.EstadoVuelo.Cerrado)
+                    {
+                        errores += "No se permite actualizar el vuelo, ya que se encuentra en un estado diferente de programado, disponible o cerrado";
+                    }
+                }
+            }
+
+            // Validar el codigo del vuelo
+            if (string.IsNullOrEmpty(errores))
+            {
+                if (string.IsNullOrEmpty(parametrosActualizarVuelo.VueloCodigo))
+                {
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "codigo");
+                }
+                else
+                {
+                    // Valida si el codigo del vuelo ya existe en el sistema
+                    if (Resultado.Any(x => x.VueloCodigo.Trim().ToUpper() == parametrosActualizarVuelo.VueloCodigo.Trim().ToUpper() &&
+                                                                        x.VueloId != parametrosActualizarVuelo.VueloId))
+                    {
+                        errores += string.Format(DefaultMessages.AlreadyExistsData, $"el codigo de vuelo '{parametrosActualizarVuelo.VueloCodigo.Trim()}'");
+                    }
+                }
+            }
+
+            // Validar la ciudad de origen
+            if (string.IsNullOrEmpty(errores))
+            {
+                if (parametrosActualizarVuelo.CiudadOrigenId == null || parametrosActualizarVuelo.CiudadOrigenId == 0)
+                {
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "ciudad de origen");
+                }
+                else
+                {
+                    // Valida si la ciudad ingresada existe
+                    IEnumerable<BusquedaCiudadPoco> ciudades = new List<BusquedaCiudadPoco>();
+                    ParamsConsultarCiudad paramsConsultarCiudad = new ParamsConsultarCiudad();
+                    paramsConsultarCiudad.CiudadId = parametrosActualizarVuelo.CiudadOrigenId;
+                    ciudades = await _iAdministracionService.GetWithParamsAsync(paramsConsultarCiudad);
+
+                    if (ciudades.Count() == 0)
+                    {
+                        errores += string.Format(DefaultMessages.DataNotFound, "La ciudad de origen");
+                    }
+                }
+            }
+
+            // Validar que la ciudad de origen esté activa
+            if (string.IsNullOrEmpty(errores))
+            {
+                // Valida si la ciudad ingresada existe
+                IEnumerable<BusquedaCiudadPoco> ciudades = new List<BusquedaCiudadPoco>();
+                ParamsConsultarCiudad paramsConsultarCiudad = new ParamsConsultarCiudad();
+                paramsConsultarCiudad.CiudadId = parametrosActualizarVuelo.CiudadOrigenId;
+                paramsConsultarCiudad.CiudadEstado = true;
+                ciudades = await _iAdministracionService.GetWithParamsAsync(paramsConsultarCiudad);
+
+                if (ciudades.Count() == 0)
+                {
+                    errores += string.Format(DefaultMessages.NotActiveData, "La ciudad de origen");
+                }
+            }
+
+            // Validar la ciudad de destino
+            if (string.IsNullOrEmpty(errores))
+            {
+                if (parametrosActualizarVuelo.CiudadDestinoId == null || parametrosActualizarVuelo.CiudadDestinoId == 0)
+                {
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "ciudad de destino");
+                }
+                else
+                {
+                    // Valida si la ciudad ingresada existe
+                    IEnumerable<BusquedaCiudadPoco> ciudades = new List<BusquedaCiudadPoco>();
+                    ParamsConsultarCiudad paramsConsultarCiudad = new ParamsConsultarCiudad();
+                    paramsConsultarCiudad.CiudadId = parametrosActualizarVuelo.CiudadDestinoId;
+                    ciudades = await _iAdministracionService.GetWithParamsAsync(paramsConsultarCiudad);
+
+                    if (ciudades.Count() == 0)
+                    {
+                        errores += string.Format(DefaultMessages.DataNotFound, "La ciudad de destino");
+                    }
+                }
+            }
+
+            // Validar que la ciudad de destino esté activa
+            if (string.IsNullOrEmpty(errores))
+            {
+                // Valida si la ciudad ingresada existe
+                IEnumerable<BusquedaCiudadPoco> ciudades = new List<BusquedaCiudadPoco>();
+                ParamsConsultarCiudad paramsConsultarCiudad = new ParamsConsultarCiudad();
+                paramsConsultarCiudad.CiudadId = parametrosActualizarVuelo.CiudadDestinoId;
+                paramsConsultarCiudad.CiudadEstado = true;
+                ciudades = await _iAdministracionService.GetWithParamsAsync(paramsConsultarCiudad);
+
+                if (ciudades.Count() == 0)
+                {
+                    errores += string.Format(DefaultMessages.NotActiveData, "La ciudad de destino");
+                }
+            }
+
+            // Validar que la ciudad origen y destino no sea la misma
+            if (string.IsNullOrEmpty(errores))
+            {
+                if (parametrosActualizarVuelo.CiudadOrigenId == parametrosActualizarVuelo.CiudadDestinoId)
+                {
+                    errores += "La ciudad de origen y ciudad destino deben ser diferentes";
+                }
+            }
+
+            // Validar el precio del vuelo por asiento
+            if (string.IsNullOrEmpty(errores))
+            {
+                if (parametrosActualizarVuelo.VueloPrecio == null || parametrosActualizarVuelo.VueloPrecio == 0)
+                {
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "precio");
+                }
+                else
+                {
+                    if (parametrosActualizarVuelo.VueloPrecio <= 0)
+                    {
+                        errores += string.Format(DefaultMessages.InvalidNumberMin, "El precio", "0");
+                    }
+                }
+
+            }
+
+            // Validar el precio de descuento (Si viene que sea mayor a 0.01...)
+            if (string.IsNullOrEmpty(errores))
+            {
+                if (parametrosActualizarVuelo.VueloDescuento != null)
+                {
+                    if (parametrosActualizarVuelo.VueloDescuento < 0 || parametrosActualizarVuelo.VueloDescuento > 100)
+                    {
+                        errores += string.Format(DefaultMessages.RangeError, "El porcentaje de descuento", "0", "100");
+                    }
+                }
+            }
+
+            // Validar fecha de salida 
+            if (string.IsNullOrEmpty(errores))
+            {
+                if (parametrosActualizarVuelo.VueloFechaHoraSalida == null)
+                {
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "fecha salida");
+                }
+                else
+                {
+                    if (parametrosActualizarVuelo.VueloFechaHoraSalida <= DateTime.Now)
+                    {
+                        errores += "La fecha de salida no debe ser menor o igual a la hora actual";
+                    }
+                }
+            }
+
+            // Validar fecha de llegada 
+            if (string.IsNullOrEmpty(errores))
+            {
+                if (parametrosActualizarVuelo.VueloFechaHoraLlegada == null)
+                {
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "fecha llegada");
+                }
+                else
+                {
+                    if (parametrosActualizarVuelo.VueloFechaHoraLlegada <= parametrosActualizarVuelo.VueloFechaHoraSalida)
+                    {
+                        errores += "La fecha de llegada no debe ser menor o igual a la fecha de salida";
                     }
                 }
             }
@@ -738,187 +836,7 @@
                         string nombreEstadoActual = Enum.GetName(typeof(Enums.Enum.EstadoVuelo), estadoActual);
                         string nombreEstadoCambio = Enum.GetName(typeof(Enums.Enum.EstadoVuelo), estadoCambio);
 
-                        throw new InvalidOperationException(
-                            $"No se puede cambiar el estado del vuelo de '{nombreEstadoActual}' a '{nombreEstadoCambio}'."
-                        );
-                    }
-                }
-            }
-
-            if (!string.IsNullOrEmpty(errores))
-            {
-                throw new ValidationException(errores);
-            }
-        }
-
-        /// <summary>Valida los campos obligatorios para realizar la creacion o actualización de la compra de un vuelo.</summary>
-        /// <param name="parametrosCrearActualizarCompra">El objeto de tipo ParamsCrearActualizarCompra que contiene los detalles a validar.</param>
-        /// <exception cref="ValidationException">Lanza una excepción si alguno de los campos obligatorios es nulo o tiene un valor inválido.</exception>
-        private async Task ValidarCamposCrearActualizarCompra(ParamsCrearActualizarCompra parametrosCrearActualizarCompra)
-        {
-            string errores = string.Empty;
-            IEnumerable<Compra> Resultado = new List<Compra>();
-            ParamsConsultarCompra Existentes = new ParamsConsultarCompra();
-            Resultado = await GetWithParamsAsync(Existentes);
-
-            if (parametrosCrearActualizarCompra.CompraId != null && parametrosCrearActualizarCompra.CompraId > 0)
-            {
-                // Valida si el Id de la compra existe
-                if (Resultado.Where(x => x.CompraId == parametrosCrearActualizarCompra.CompraId).Count() == 0)
-                {
-                    errores += string.Format(DefaultMessages.DataNotFound, "La compra");
-                }
-            }
-
-            // Valida el vuelo
-            if (string.IsNullOrEmpty(errores))
-            {
-                if (parametrosCrearActualizarCompra.VueloId == null || parametrosCrearActualizarCompra.VueloId == 0)
-                {
-                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "vuelo");
-                }
-                else {
-                    // Valida que el vuelo exista en el sistema
-                    IEnumerable<Vuelo> vuelos = new List<Vuelo>();
-                    ParamsConsultarVuelo paramsConsultaVuelo = new ParamsConsultarVuelo();
-                    paramsConsultaVuelo.VueloId = parametrosCrearActualizarCompra.VueloId;
-                    vuelos = await GetWithParamsAsync(paramsConsultaVuelo);
-
-                    if (vuelos.Count() == 0)
-                    {
-                        errores += string.Format(DefaultMessages.DataNotFound, "El vuelo");
-                    }
-                }
-            }
-
-            // Valida que el vuelo tenga un estado correcto para realizar la compra
-            if (string.IsNullOrEmpty(errores))
-            {
-                if (parametrosCrearActualizarCompra.CompraId == null || parametrosCrearActualizarCompra.CompraId == 0)
-                {
-                    IEnumerable<Vuelo> vuelos = new List<Vuelo>();
-                    ParamsConsultarVuelo paramsConsultaVuelo = new ParamsConsultarVuelo();
-                    paramsConsultaVuelo.VueloId = parametrosCrearActualizarCompra.VueloId;
-                    paramsConsultaVuelo.EstadoVueloId = (int?)Domain.General.Enums.Enum.EstadoVuelo.Disponible;
-                    vuelos = await GetWithParamsAsync(paramsConsultaVuelo);
-
-                    if (vuelos.Count() == 0)
-                    {
-                        errores += "No se permite comprar un vuelo con un estado diferente de disponible.";
-                    }
-                }
-            }
-
-            // Si la compra ya existe entonces se debe validar que el vuelo si esté asociado a la compra
-            if (string.IsNullOrEmpty(errores))
-            {
-                if (parametrosCrearActualizarCompra.CompraId != null && parametrosCrearActualizarCompra.CompraId > 0)
-                {
-                    IEnumerable<Compra> compras = new List<Compra>();
-                    ParamsConsultarCompra paramsConsultaCompra = new ParamsConsultarCompra();
-                    paramsConsultaCompra.CompraId = parametrosCrearActualizarCompra.CompraId;
-                    paramsConsultaCompra.VueloId = parametrosCrearActualizarCompra.VueloId;
-                    compras = await GetWithParamsAsync(paramsConsultaCompra);
-
-                    if (compras.Count() == 0)
-                    {
-                        errores += "El vuelo no se encuentra asociado a la compra.";
-                    }
-                }
-            }
-
-            // Valida estado de compra
-            if (string.IsNullOrEmpty(errores)) 
-            {
-                if (parametrosCrearActualizarCompra.EstadoCompraId == null || parametrosCrearActualizarCompra.EstadoCompraId == 0)
-                {
-                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "estado compra");
-                }
-                else
-                {
-                    // Valida si el estado de compra existe en el sistema
-                    IEnumerable<EstadoCompra> estadosCompra = new List<EstadoCompra>();
-                    estadosCompra = await ConsultaEstadoCompra();
-
-                    if (!estadosCompra.Any(x => x.EstadoCompraId == parametrosCrearActualizarCompra.EstadoCompraId))
-                    {
-                        errores += string.Format(DefaultMessages.DataNotFound, "El estado de compra");
-                    }
-                }
-            }
-
-            // Si es una compra inicial debe validar que el estado de la compra sea "Comprado=1"
-            if (string.IsNullOrEmpty(errores)) {
-                 if (parametrosCrearActualizarCompra.CompraId == null || parametrosCrearActualizarCompra.CompraId == 0)
-                {
-                    if (parametrosCrearActualizarCompra.EstadoCompraId != (int?)Domain.General.Enums.Enum.EstadoCompra.Comprado)
-                    {
-                        errores += "El estado de compra no es valido";
-                    }
-                }
-            }
-
-            // Valida si la fecha de compra cumple con el parametro antes de la salida del vuelo
-            if (string.IsNullOrEmpty(errores)) 
-            {
-
-                //Obtiene el vuelo para obtener su fecha y hora de salida para saber si está permitido comprar el vuelo
-                IEnumerable<Vuelo> vuelos = new List<Vuelo>();
-                ParamsConsultarVuelo paramsConsultaVuelo = new ParamsConsultarVuelo();
-                paramsConsultaVuelo.VueloId = parametrosCrearActualizarCompra.VueloId;
-                vuelos = await GetWithParamsAsync(paramsConsultaVuelo);
-
-                // Obtiene parametros del sistema
-                ParamsConsultarParametros paramsConsultarParametros = new ParamsConsultarParametros();
-                paramsConsultarParametros.ParametrosNombre = "TiempoCompraVueloAntesSalida";
-                IEnumerable<Parametros> parametrosCompraAntesSalida = await _iConfiguracionService.GetWithParamsAsync(paramsConsultarParametros);
-
-                DateTime fechaHoraActual = DateTime.Now;
-                DateTime fechaHoraSalidaVuelo = (DateTime)vuelos.FirstOrDefault().VueloFechaHoraSalida;
-
-                if (parametrosCompraAntesSalida.Count() > 0)
-                {
-                    // Le suma la cantidad de segundos parametrizados a la hora actual
-                    fechaHoraActual.AddSeconds(Convert.ToInt32(parametrosCompraAntesSalida.FirstOrDefault().ParametrosValor));
-                }
-
-                if (fechaHoraActual >= fechaHoraSalidaVuelo)
-                {
-                    errores += "Señor usuario, según el tiempo estimado de compra, ya no se puede realizar.";
-                }
-            }
-
-            // Valida el metodo de pago
-            if (string.IsNullOrEmpty(errores)) {
-                if (parametrosCrearActualizarCompra.MetodoPagoId == null || parametrosCrearActualizarCompra.MetodoPagoId == 0)
-                {
-                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "metodo de pago");
-                }
-                else
-                {
-                    // Valida si el metodo de pago existe
-                    ParamsConsultarMetodoPago paramsConsultarMetodoPago = new ParamsConsultarMetodoPago();
-                    paramsConsultarMetodoPago.MetodoPagoId = parametrosCrearActualizarCompra.MetodoPagoId;
-                    IEnumerable<MetodoPago> metodoPagos = await _iAdministracionService.GetWithParamsAsync(paramsConsultarMetodoPago);
-
-                    if (metodoPagos.Count() == 0)
-                    {
-                        errores += string.Format(DefaultMessages.DataNotFound, "El metodo de pago");
-                    }
-                }
-            }
-
-            // Valida el costo de la compra
-            if (string.IsNullOrEmpty(errores)) {
-                if (parametrosCrearActualizarCompra.CompraTotal == null || parametrosCrearActualizarCompra.CompraTotal == 0)
-                {
-                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "compra total");
-                }
-                else
-                {
-                    if (parametrosCrearActualizarCompra.CompraTotal <= 0)
-                    {
-                        errores += string.Format(DefaultMessages.InvalidNumberMin, "La compra total", "0");
+                        errores += $"No se puede cambiar el estado del vuelo de '{nombreEstadoActual}' a '{nombreEstadoCambio}'.";
                     }
                 }
             }

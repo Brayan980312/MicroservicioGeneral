@@ -48,7 +48,7 @@
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Parametros>> UpdateAsync(ParamsActualizarParametros paramsUpdate)
+        public async Task<IEnumerable<Parametros>> UpdateAsync(ParamsActualizarParametros paramsUpdate, int? userId = null)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, TimeSpan.FromMinutes(5), TransactionScopeAsyncFlowOption.Enabled))
             {
@@ -98,17 +98,21 @@
                 }
             }
 
-            if (string.IsNullOrEmpty(parametrosActualizarParametro.ParametrosValor))
+            // Validacion del valor del parametro
+            if (string.IsNullOrEmpty(errores))
             {
-                errores += string.Format(DefaultMessages.FieldRequiredWithName, "valor"); 
-            }
-            else if (!RegexHelper.EsNumero(parametrosActualizarParametro.ParametrosValor))
-            {
-                errores += string.Format(DefaultMessages.InvalidNumberWithName, "valor"); 
-            }
-            else if (!RegexHelper.EsEnteroPositivo(parametrosActualizarParametro.ParametrosValor))
-            {
-                errores += string.Format(DefaultMessages.InvalidNumberMin, "valor","1"); 
+                if (string.IsNullOrEmpty(parametrosActualizarParametro.ParametrosValor))
+                {
+                    errores += string.Format(DefaultMessages.FieldRequiredWithName, "valor");
+                }
+                else if (!RegexHelper.EsNumero(parametrosActualizarParametro.ParametrosValor))
+                {
+                    errores += string.Format(DefaultMessages.InvalidNumberWithName, "valor");
+                }
+                else if (!RegexHelper.EsEnteroPositivo(parametrosActualizarParametro.ParametrosValor))
+                {
+                    errores += string.Format(DefaultMessages.InvalidNumberMin, "valor", "0");
+                }
             }
 
             if (!string.IsNullOrEmpty(errores))
