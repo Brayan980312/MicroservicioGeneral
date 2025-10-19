@@ -15,9 +15,7 @@
         /// <param name="builder">Entidad a Configurar.</param>
         public void Configure(EntityTypeBuilder<AsientoAvion> builder)
         {
-            builder.ToTable("AsientoAvion", "Avion");
-
-            builder.HasComment("Almacena la información de los asientos pertenecientes a un avión, incluyendo si son VIP y su porcentaje adicional.");
+            builder.ToTable("AsientoAvion", "Avion", t => t.HasComment("Almacena la información de los asientos pertenecientes a un avión, incluyendo si son VIP y su porcentaje adicional."));         
 
             builder.HasKey(e => e.AsientoAvionId);
 

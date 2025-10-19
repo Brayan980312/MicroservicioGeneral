@@ -9,6 +9,9 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
 
+    /// <summary>
+    /// Controlador que maneja los endpoints relacionados con la configuración del sistema del sistema.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
 

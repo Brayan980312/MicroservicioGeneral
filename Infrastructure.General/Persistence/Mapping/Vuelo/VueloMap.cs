@@ -14,9 +14,7 @@
         /// <param name="builder">Entidad a Configurar.</param>
         public void Configure(EntityTypeBuilder<Vuelo> builder)
         {
-            builder.ToTable("Vuelo", "Vuelo");
-
-            builder.HasComment("Almacena la información de los vuelos registrados en el sistema.");
+            builder.ToTable("Vuelo", "Vuelo", t => t.HasComment("Almacena la información de los vuelos registrados en el sistema."));
 
             builder.HasKey(e => e.VueloId);
 
@@ -72,6 +70,30 @@
             builder.Property(e => e.VueloFechaCreacion)
                 .IsRequired()
                 .HasComment("Fecha de creación del vuelo.");
+
+            builder.HasOne(e => e.EstadoVuelo)
+                .WithMany()
+                .HasForeignKey(e => e.EstadoVueloId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Vuelo_EstadoVuelo_EstadoVueloId");
+
+            builder.HasOne(e => e.Avion)
+                .WithMany()
+                .HasForeignKey(e => e.AvionId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Vuelo_Avion_AvionId");
+
+            builder.HasOne(e => e.CiudadOrigen)
+                .WithMany()
+                .HasForeignKey(e => e.CiudadOrigenId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Vuelo_CiudadOrigen_CiudadOrigenId");
+
+            builder.HasOne(e => e.CiudadDestino)
+                .WithMany()
+                .HasForeignKey(e => e.CiudadDestinoId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Vuelo_CiudadDestino_CiudadDestinoId");
         }
 
         #endregion

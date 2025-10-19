@@ -15,17 +15,19 @@
         /// <param name="builder">Entidad a Configurar.</param>
         public void Configure(EntityTypeBuilder<VueloAsiento> builder)
         {
-            builder.ToTable("VueloAsiento", "Vuelo");
+            builder.ToTable("VueloAsiento", "Vuelo",t => t.HasComment("Controla la disponibilidad y concurrencia de los asientos por vuelo."));
 
             builder.HasKey(e => e.VueloAsientoId);
 
             builder.Property(e => e.VueloAsientoId)
                 .ValueGeneratedOnAdd();
 
+            builder.Ignore(e => e.Id);
+
             builder.Property(e => e.VueloId)
                 .IsRequired();
 
-            builder.Property(e => e.AsientoId)
+            builder.Property(e => e.AsientoAvionId)
                 .IsRequired();
 
             builder.Property(e => e.VueloAsientoReservado)
@@ -43,7 +45,11 @@
                 .IsRowVersion()
                 .IsConcurrencyToken();
 
-            builder.HasComment("Controla la disponibilidad y concurrencia de los asientos por vuelo.");
+            builder.HasOne(e => e.AsientoAvion)
+                .WithMany()
+                .HasForeignKey(e => e.AsientoAvionId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Vuelo_Avion_AvionId");
         }
 
         #endregion

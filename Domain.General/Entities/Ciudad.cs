@@ -31,5 +31,8 @@
         /// Estado de la ciudad. True si está activa, False si está inactiva.
         /// </summary>
         public bool? CiudadEstado { get; set; }
+
+        /// <summary>Entidad de navegación hacia el país al que pertenece la ciudad.</summary>
+        public Pais? Pais { get; set; }
     }
 }

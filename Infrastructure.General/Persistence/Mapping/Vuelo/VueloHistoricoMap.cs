@@ -14,9 +14,7 @@
         /// <param name="builder">Entidad a Configurar.</param>
         public void Configure(EntityTypeBuilder<VueloHistorico> builder)
         {
-            builder.ToTable("VueloHistorico", "Vuelo");
-
-            builder.HasComment("Contiene el historial de cambios de información de los vuelos.");
+            builder.ToTable("VueloHistorico", "Vuelo", t => t.HasComment("Contiene el historial de cambios de información de los vuelos."));
 
             builder.HasKey(e => e.VueloHistoricoId);
 
@@ -76,6 +74,36 @@
             builder.Property(e => e.VueloHistoricoFechaCreacion)
                 .IsRequired()
                 .HasComment("Fecha de creación del registro histórico.");
+
+            builder.HasOne(e => e.EstadoVuelo)
+                .WithMany()
+                .HasForeignKey(e => e.EstadoVueloId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Vuelo_EstadoVuelo_EstadoVueloId");
+
+            builder.HasOne(e => e.Avion)
+                .WithMany()
+                .HasForeignKey(e => e.AvionId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_VueloHistorico_Avion_AvionId");
+
+            builder.HasOne(e => e.CiudadOrigen)
+                .WithMany()
+                .HasForeignKey(e => e.CiudadOrigenId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_VueloHistorico_CiudadOrigen_CiudadOrigenId");
+
+            builder.HasOne(e => e.CiudadDestino)
+                .WithMany()
+                .HasForeignKey(e => e.CiudadDestinoId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_VueloHistorico_CiudadDestino_CiudadDestinoId");
+
+            builder.HasOne(e => e.Usuario)
+                .WithMany()
+                .HasForeignKey(e => e.UsuarioCreacionId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_VueloHistorico_Usuario_UsuarioId");
         }
 
         #endregion

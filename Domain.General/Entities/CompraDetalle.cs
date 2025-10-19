@@ -22,5 +22,8 @@
 
         /// <summary>Precio del asiento o pasaje.</summary>
         public decimal? CompraDetallePrecio { get; set; }
+
+        /// <summary>Navegación inversa hacia el asiento del vuelo (uno a uno).</summary>
+        public VueloAsiento VueloAsiento { get; set; } = null!;
     }
 }

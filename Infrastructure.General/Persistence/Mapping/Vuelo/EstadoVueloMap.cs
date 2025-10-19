@@ -13,9 +13,7 @@
         /// <param name="builder">Entidad a Configurar.</param>
         public void Configure(EntityTypeBuilder<EstadoVuelo> builder)
         {
-            builder.ToTable("EstadoVuelo", "Vuelo");
-
-            builder.HasComment("Almacena la información de los estados que puede tener un vuelo, como Programado, En vuelo, Cancelado, etc.");
+            builder.ToTable("EstadoVuelo", "Vuelo",t => t.HasComment("Almacena la información de los estados que puede tener un vuelo, como Programado, En vuelo, Cancelado, etc."));
 
             builder.HasKey(e => e.EstadoVueloId);
 

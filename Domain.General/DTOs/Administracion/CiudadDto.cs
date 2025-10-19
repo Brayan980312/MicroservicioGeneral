@@ -18,9 +18,29 @@
         public string? CiudadNomenclatura { get; set; }
 
         /// <summary>
+        /// Nombre completo de la ciudad y la nomenclatura.
+        /// </summary>
+        public string? CiudadNombreNomenclatura { get; set; }
+
+        /// <summary>
         /// Identificador del país al que pertenece la ciudad.
         /// </summary>
         public int? PaisId { get; set; }
+
+        /// <summary>
+        /// Nombre del pais asociado a la ciudad.
+        /// </summary>
+        public string? PaisNombre { get; set; }
+
+        /// <summary>
+        /// Nomenclatura del pais asociado a la ciudad.
+        /// </summary>
+        public string? PaisNomenclatura { get; set; }
+
+        /// <summary>
+        /// Nombre y nomenclatura del pais  asociado a la ciudad.
+        /// </summary>
+        public string? PaisNombreNomenclatura { get; set; }
 
         /// <summary>
         /// Estado de la ciudad. True si está activa, False si está inactiva.

@@ -15,9 +15,7 @@
         /// <param name="builder">Entidad a Configurar.</param>
         public void Configure(EntityTypeBuilder<Ciudad> builder)
         {
-            builder.ToTable("Ciudad", "Administracion");
-
-            builder.HasComment("Almacena la información de las ciudades registradas en el sistema, incluyendo su nomenclatura, país asociado y estado activo/inactivo.");
+            builder.ToTable("Ciudad", "Administracion", t => t.HasComment("Almacena la información de las ciudades registradas en el sistema, incluyendo su nomenclatura, país asociado y estado activo/inactivo."));            
 
             builder.HasKey(e => e.CiudadId);
 
@@ -46,12 +44,14 @@
             builder.Property(e => e.CiudadEstado)
                 .IsRequired()
                 .HasComment("Estado de la ciudad. Valor 1 = Activa, 0 = Inactiva.");
-            
-            builder.HasOne<Pais>()
+
+            builder.HasOne(e => e.Pais)
                 .WithMany()
                 .HasForeignKey(e => e.PaisId)
                 .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("FK_Ciudad_Pais");
+                .HasConstraintName("FK_Ciudad_Pais_PaisId");
+
+
         }
 
         #endregion

@@ -9,9 +9,8 @@
     /// </summary>
     public interface IAdministracionService : ICreateService<ParamsCrearActualizarPais, IEnumerable<Pais>>, 
                                                                                     IReadWithParamsService<ParamsConsultarPais, IEnumerable<Pais>>,
-                                                                                    ICreateService<ParamsCrearActualizarCiudad, IEnumerable<Ciudad>>, 
-                                                                                    IReadWithParamsService<ParamsConsultarCiudad, IEnumerable<Ciudad>>,
-                                                                                    ICreateService<ParamsCrearActualizarMetodoPago, IEnumerable<MetodoPago>>,
+                                                                                    ICreateService<ParamsCrearActualizarCiudad, IEnumerable<BusquedaCiudadPoco>>, 
+                                                                                    IReadWithParamsService<ParamsConsultarCiudad, IEnumerable<BusquedaCiudadPoco>>,
                                                                                     IReadWithParamsService<ParamsConsultarMetodoPago, IEnumerable<MetodoPago>>
     {
         /* Aquí se debe dejar el contrato personalizado */
