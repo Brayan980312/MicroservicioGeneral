@@ -47,11 +47,11 @@
                 .IsRequired()
                 .HasComment("Precio del asiento o pasaje.");
 
-            builder.HasOne<VueloAsiento>()
-        .WithOne(v => v.CompraDetalle)
-        .HasForeignKey<CompraDetalle>(cd => cd.VueloAsientoId)
-        .OnDelete(DeleteBehavior.Restrict)
-        .HasConstraintName("FK_CompraDetalle_VueloAsiento_VueloAsientoId");
+            builder.HasOne(cd => cd.VueloAsiento)
+    .WithOne(va => va.CompraDetalle)
+    .HasForeignKey<CompraDetalle>(cd => cd.VueloAsientoId)
+    .OnDelete(DeleteBehavior.Restrict)
+    .HasConstraintName("FK_CompraDetalle_VueloAsiento_VueloAsientoId");
         }
 
         #endregion

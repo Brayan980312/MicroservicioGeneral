@@ -1,7 +1,6 @@
 ﻿namespace Domain.General.Interfaces.General
 {
     using Domain.General.CustomEntities.Compras;
-    using Domain.General.CustomEntities.Vuelo;
     using Domain.General.Entities;
     using Utilitarios.Contracts.Crud;
     public interface IComprasService :  IReadWithParamsService<ParamsConsultarCompra, IEnumerable<Compra>>,
@@ -18,5 +17,10 @@
         /// <param name="paramsCompra">Parámetros con la información de compra y detalle de los asientos.</param>
         /// <returns>Lista de los detalles de compra generados.</returns>
         Task<Compra> ComprarAsientosAsync(ParamsCompraAsientos paramsCompra, int userId);
+
+        /// <summary>Realiza la consulta de las compras que tiene el usuario asociado.</summary>
+        /// <param name="userId">Parámetro con la información del usuario que realiza la petición.</param>
+        /// <returns>Lista de las compras que ha realizado el usuario con su correpondiente detalle.</returns>
+        Task<IEnumerable<ComprasRealizadasUsuarioPoco>> BuscarComprasUsuarioAsycn(int userId);
     }
 }

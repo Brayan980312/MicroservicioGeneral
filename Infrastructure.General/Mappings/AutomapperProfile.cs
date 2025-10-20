@@ -128,10 +128,15 @@
             /// <summary>Mapea la entidad <see cref="VuelosMasBuscados"/> a <see cref="ParamsConsultarVuelosMasBuscados"/> y viceversa.</summary>
             CreateMap<VuelosMasBuscadosPoco, VuelosMasBuscadosDto>().ReverseMap();
 
-
             /* Personalizados */
             /// <summary>Mapea la entidad <see cref="VuelosDisponiblesDto"/> a <see cref="BusquedaVuelosDisponiblesPoco"/> y viceversa.</summary>
             CreateMap<VuelosDisponiblesDto, BusquedaVuelosDisponiblesPoco>().ReverseMap();
+
+            /// <summary>Mapea la entidad <see cref="ComprasRealizadasUsuarioDto"/> a <see cref="ComprasRealizadasUsuarioPoco"/> y viceversa.</summary>
+            CreateMap<ComprasRealizadasUsuarioDto, ComprasRealizadasUsuarioPoco>().ReverseMap();
+
+            /// <summary>Mapea la entidad <see cref="AsientosAsociadosACompraDto"/> a <see cref="AsientosAsociadosACompraPoco"/> y viceversa.</summary>
+            CreateMap<AsientosAsociadosACompraDto, AsientosAsociadosACompraPoco>().ReverseMap();
         }
     }
 }

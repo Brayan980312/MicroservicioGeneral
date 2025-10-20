@@ -17,10 +17,19 @@
         /// <summary>Indica si el asiento es de tipo VIP. True si es VIP, False si no lo es.</summary>
         public string? AsientoAvionVIP { get; set; }
 
+        /// <summary>Obtiene la cantidad de porcentaje que se le aplica al asiento cuando es VIP.</summary>
+        public decimal? asientoAvionVIPPorcentaje { get; set; }
+
         /// <summary>Nombre del pasajero.</summary>
         public string? CompraDetalleNombrePasajero { get; set; }
 
         /// <summary>Identificación del pasajero.</summary>
         public string? CompraDetalleIdentificacionPasajero { get; set; }
+
+        /// <summary>
+        /// Campo de versión de fila (rowversion) para el manejo de concurrencia optimista.
+        /// Se actualiza automáticamente por SQL Server en cada modificación.
+        /// </summary>
+        public byte[] RowVersion { get; set; }
     }
 }

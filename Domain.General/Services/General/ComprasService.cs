@@ -2,6 +2,7 @@
 {
     using AutoMapper;
     using Domain.General.CustomEntities.Compras;
+    using Domain.General.CustomEntities.Params;
     using Domain.General.CustomEntities.Vuelo;
     using Domain.General.Entities;
     using Domain.General.Interfaces.General;
@@ -28,15 +29,6 @@
         /// <summary>Inyeccion del servicio IConfiguracionService.</summary>
         private readonly IConfiguracionService _iConfiguracionService;
 
-        /// <summary>Inyeccion del servicio IAdministracionService.</summary>
-        private readonly IAdministracionService _iAdministracionService;
-
-        /// <summary>Inyeccion del servicio IAvionService.</summary>
-        private readonly IAvionService _iAvionService;
-
-        /// <summary>Inyeccion del servicio Metricas.</summary>
-        private readonly IMetricasService _iMetricasService;
-
         /// <summary>Inyeccion del servicio Vuelos.</summary>
         private readonly IVueloService _iVueloService;
 
@@ -46,14 +38,11 @@
 
         ///<summary>Inicializa una nueva instancia de la clase VueloService.</summary>
         /// <param name="iUnitOfWork">Inyección de dependencias de la unidad de trabajo - UnitOfWork.</param>
-        public ComprasService(IUnitOfWork iUnitOfWork, IMapper iMapper, IAdministracionService iAdministracionService, IAvionService iAvionService, IConfiguracionService iConfiguracionService, IMetricasService iMetricasService, IVueloService iVueloService)
+        public ComprasService(IUnitOfWork iUnitOfWork, IMapper iMapper, IConfiguracionService iConfiguracionService, IVueloService iVueloService)
         {
             _iUnitOfWork = iUnitOfWork;
             _iMapper = iMapper;
-            _iAdministracionService = iAdministracionService;
-            _iAvionService = iAvionService;
             _iConfiguracionService = iConfiguracionService;
-            _iMetricasService = iMetricasService;
             _iVueloService = iVueloService;
         }
 
@@ -106,12 +95,24 @@
                 Expression<Func<VueloAsiento, bool>> filtro = filtroAsiento.ToFilterExpression<VueloAsiento>();
                 IEnumerable<VueloAsiento> asientos = await _iUnitOfWork.Repository<VueloAsiento>().ConsultarListaAsync(filtro);
 
+                // Obtiene la cantidad de segundos que estará bloqueado para la reserva de asientos y la compra de los mismos
+                int cantidadSegundosReservaAsientos = 0;
+                IEnumerable<Parametros> TiempoCompraVuelo;
+                ParamsConsultarParametros parametrosBusqueda = new ParamsConsultarParametros();
+                parametrosBusqueda.ParametrosNombre = "TiempoCompraVuelo";
+                TiempoCompraVuelo = await _iConfiguracionService.GetWithParamsAsync(parametrosBusqueda);                
+
+                if (TiempoCompraVuelo.Count() > 0)
+                {
+                    cantidadSegundosReservaAsientos = Convert.ToInt32(TiempoCompraVuelo.FirstOrDefault()!.ParametrosValor);
+                }
+
                 var ahora = DateTime.Now;
                 var bloqueados = new List<VueloAsiento>();
 
                 foreach (var asiento in asientos.Where(a => listaIds.Contains((int)a.VueloAsientoId)))
                 {
-                    asiento.VueloAsientoBloqueadoHasta = ahora.AddMinutes(5);
+                    asiento.VueloAsientoBloqueadoHasta = ahora.AddSeconds(cantidadSegundosReservaAsientos);
                     await _iUnitOfWork.Repository<VueloAsiento>().ActualizarAsync(asiento);
                     bloqueados.Add(asiento);
                 }
@@ -186,6 +187,12 @@
                 return nuevaCompra;
             }
         }
+
+        public async Task<IEnumerable<ComprasRealizadasUsuarioPoco>> BuscarComprasUsuarioAsycn(int userId)
+        {
+            return await _iUnitOfWork.DLComprasPersonalizado.BuscarComprasUsuarioAsycn(userId); ;
+
+        }
         #endregion
 
         #region Metodos Propios
@@ -205,7 +212,7 @@
         {
             CompraDetalleHistorico vueloHistorico = new CompraDetalleHistorico();
             vueloHistorico.CompraDetalleHistoricoId = null;
-            vueloHistorico.CompraDetalleId = createHistorico.CompraId;
+            vueloHistorico.CompraDetalleId = createHistorico.CompraDetalleId;
             vueloHistorico.CompraDetalleHistoricoNombrePasajero = createHistorico.CompraDetalleNombrePasajero;
             vueloHistorico.CompraDetalleHistoricoIdentificacionPasajero = createHistorico.CompraDetalleIdentificacionPasajero;
             vueloHistorico.CompraDetalleHistoricoFechaRegistro = DateTime.Now;
@@ -352,10 +359,6 @@
                 // Ya comprado
                 if (asiento.VueloAsientoComprado == true)
                     throw new ValidationException("Uno o más asientos ya fueron comprados.");
-
-                // Bloqueado temporalmente
-                if (asiento.VueloAsientoBloqueadoHasta.HasValue && asiento.VueloAsientoBloqueadoHasta > DateTime.Now)
-                    throw new ValidationException("Uno o más asientos se encuentran bloqueados.");
             }
         }
 

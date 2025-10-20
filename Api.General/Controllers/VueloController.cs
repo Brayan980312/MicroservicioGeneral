@@ -111,7 +111,6 @@
         /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
         /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
         /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
-        [Authorize(Roles = "Administrador")]
         [HttpGet("ConsultarVueloAsientos")]
         public async Task<ActionResult<List<AsientosVueloDto>>> ConsultarVueloAsientos([FromQuery] ParamsBusquedaAsientoVuelo parametrosConsultarEntidad)
         {

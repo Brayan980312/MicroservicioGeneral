@@ -30,6 +30,9 @@
         /// <summary>Instancia del repositorio de DLMetricas</summary>
         IDLMetricas DLMetricasPersonalizado { get; }
 
+        /// <summary>Instancia del repositorio de DLCompras</summary>
+        IDLCompras DLComprasPersonalizado { get; }
+
         #endregion
 
         #region Persistencia
