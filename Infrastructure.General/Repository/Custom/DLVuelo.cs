@@ -154,7 +154,9 @@
          AsientoAvionNombre = v.AsientoAvion.AsientoAvionNombre,
          AsientoAvionVIP = (v.AsientoAvion.AsientoAvionVIP ?? false) ? "VIP" : "",
          CompraDetalleNombrePasajero = v.CompraDetalle != null ? v.CompraDetalle.CompraDetalleNombrePasajero : "",
-         CompraDetalleIdentificacionPasajero = v.CompraDetalle != null ? v.CompraDetalle.CompraDetalleIdentificacionPasajero : ""
+         CompraDetalleIdentificacionPasajero = v.CompraDetalle != null ? v.CompraDetalle.CompraDetalleIdentificacionPasajero : "",
+         RowVersion = v.RowVersion,
+         asientoAvionVIPPorcentaje = v.AsientoAvion.AsientoAvionVIPPorcentaje
      })
      .AsNoTracking()
      .ToListAsync();

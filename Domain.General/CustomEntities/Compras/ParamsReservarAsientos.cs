@@ -1,4 +1,4 @@
-﻿namespace Domain.General.CustomEntities.Vuelo
+﻿namespace Domain.General.CustomEntities.Compras
 {
     /// <summary>Parámetros para reservar uno o varios asientos en un vuelo específico.</summary>
     public class ParamsReservarAsientos

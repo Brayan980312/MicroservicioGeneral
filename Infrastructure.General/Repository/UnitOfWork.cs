@@ -29,6 +29,9 @@
 
         /// <summary>Instancia del repositorio - DLMetricas.</summary>
         private readonly IDLMetricas _iDLMetricasPersonalizado;
+
+        /// <summary>Instancia del repositorio - DLCompras.</summary>
+        private readonly IDLCompras _iDLComprasPersonalizado;
         #endregion
 
         #region Constructor
@@ -71,6 +74,9 @@
 
         /// <summary>Inicialización y verificación de la instancia del repositorio - DLMetricas.</summary>
         public IDLMetricas DLMetricasPersonalizado => _iDLMetricasPersonalizado ?? new DLMetricas(_contexto);
+
+        /// <summary>Inicialización y verificación de la instancia del repositorio - DLCompras.</summary>
+        public IDLCompras DLComprasPersonalizado => _iDLComprasPersonalizado ?? new DLCompras(_contexto);
         #endregion
 
         #region Guardar Cambios

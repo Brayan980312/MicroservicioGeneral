@@ -525,6 +525,59 @@
                 }
             }
 
+            // Validar solapamiento de vuelo por avión
+            if (string.IsNullOrEmpty(errores))
+            {
+                IEnumerable<Vuelo> vuelosMismoAvion = Resultado
+                    .Where(v => v.AvionId == parametrosCrearVuelo.AvionId && v.EstadoVueloId != (int)Domain.General.Enums.Enum.EstadoVuelo.Cancelado);
+
+                foreach (Vuelo vuelo in vuelosMismoAvion)
+                {
+                    bool solapado =
+                        (parametrosCrearVuelo.VueloFechaHoraSalida < vuelo.VueloFechaHoraLlegada &&
+                         parametrosCrearVuelo.VueloFechaHoraLlegada > vuelo.VueloFechaHoraSalida);
+
+                    if (solapado)
+                    {
+                        errores += $"El avión asignado ya tiene un vuelo programado que se solapa con el rango {vuelo.VueloFechaHoraSalida} - {vuelo.VueloFechaHoraLlegada}. ";
+                        break;
+                    }
+                }
+            }
+
+            // Validar vuelos duplicados entre mismas ciudades en la misma fecha
+            if (string.IsNullOrEmpty(errores))
+            {
+                // Obtiene el parametro que define diferencia de segundos entre vuelos con la misma ciudad de origen y destino
+                int cantidadSegundosDiferenciaVuelosMismoOrigenDestino = 0;
+                IEnumerable<Parametros> TiempoMaximoEntreVueloMismoOrigenDestino;
+                ParamsConsultarParametros parametrosBusqueda = new ParamsConsultarParametros();
+                parametrosBusqueda.ParametrosNombre = "TiempoMaximoEntreVueloMismoOrigenDestino";
+                TiempoMaximoEntreVueloMismoOrigenDestino = await _iConfiguracionService.GetWithParamsAsync(parametrosBusqueda);
+
+                if (TiempoMaximoEntreVueloMismoOrigenDestino.Count() > 0)
+                {
+                    cantidadSegundosDiferenciaVuelosMismoOrigenDestino = Convert.ToInt32(TiempoMaximoEntreVueloMismoOrigenDestino.FirstOrDefault()!.ParametrosValor);
+                }
+
+                IEnumerable<Vuelo> vuelosMismoTrayecto = Resultado.Where(v => v.CiudadOrigenId == parametrosCrearVuelo.CiudadOrigenId &&
+                                                                                                                  v.CiudadDestinoId == parametrosCrearVuelo.CiudadDestinoId &&
+                                                                                                                  v.EstadoVueloId != (int)Domain.General.Enums.Enum.EstadoVuelo.Cancelado);
+
+                foreach (Vuelo vuelo in vuelosMismoTrayecto)
+                {
+                    // Calcula la diferencia en segundos
+                    var diferenciaSegundos = Math.Abs((parametrosCrearVuelo.VueloFechaHoraSalida - vuelo.VueloFechaHoraSalida)?.TotalSeconds ?? 0);
+
+                    if (diferenciaSegundos < cantidadSegundosDiferenciaVuelosMismoOrigenDestino)
+                    {
+                        var diferenciaMinutos = Math.Round(cantidadSegundosDiferenciaVuelosMismoOrigenDestino / 60.0, 1);
+                        errores += $"Ya existe un vuelo programado para el mismo trayecto con menos de {diferenciaMinutos} minutos de diferencia en la fecha de salida. ";
+                        break;
+                    }
+                }
+            }
+
             if (!string.IsNullOrEmpty(errores))
             {
                 throw new ValidationException(errores);
@@ -744,6 +797,40 @@
                     if (parametrosActualizarVuelo.VueloFechaHoraLlegada <= parametrosActualizarVuelo.VueloFechaHoraSalida)
                     {
                         errores += "La fecha de llegada no debe ser menor o igual a la fecha de salida";
+                    }
+                }
+            }
+
+            // Validar vuelos duplicados entre mismas ciudades en la misma fecha
+            if (string.IsNullOrEmpty(errores))
+            {
+                // Obtiene el parametro que define diferencia de segundos entre vuelos con la misma ciudad de origen y destino
+                int TiempoMaximoEntreVueloMismoOrigenDestino = 0;
+                IEnumerable<Parametros> TiempoMaximoVueloEntreVueloMismoOrigenDestino;
+                ParamsConsultarParametros parametrosBusqueda = new ParamsConsultarParametros();
+                parametrosBusqueda.ParametrosNombre = "TiempoMaximoEntreVueloMismoOrigenDestino";
+                TiempoMaximoVueloEntreVueloMismoOrigenDestino = await _iConfiguracionService.GetWithParamsAsync(parametrosBusqueda);
+
+                if (TiempoMaximoVueloEntreVueloMismoOrigenDestino.Count() > 0)
+                {
+                    TiempoMaximoEntreVueloMismoOrigenDestino = Convert.ToInt32(TiempoMaximoVueloEntreVueloMismoOrigenDestino.FirstOrDefault()!.ParametrosValor);
+                }
+
+                IEnumerable<Vuelo> vuelosMismoTrayecto = Resultado.Where(v => v.CiudadOrigenId == parametrosActualizarVuelo.CiudadOrigenId &&
+                                                                                                                  v.CiudadDestinoId == parametrosActualizarVuelo.CiudadDestinoId &&
+                                                                                                                  v.VueloId != parametrosActualizarVuelo.VueloId &&
+                                                                                                                  v.EstadoVueloId != (int)Domain.General.Enums.Enum.EstadoVuelo.Cancelado);
+
+                foreach (Vuelo vuelo in vuelosMismoTrayecto)
+                {
+                    // Calcula la diferencia en segundos
+                    var diferenciaSegundos = Math.Abs((parametrosActualizarVuelo.VueloFechaHoraSalida - vuelo.VueloFechaHoraSalida)?.TotalSeconds ?? 0);
+
+                    if (diferenciaSegundos < TiempoMaximoEntreVueloMismoOrigenDestino)
+                    {
+                        var diferenciaMinutos = Math.Round(TiempoMaximoEntreVueloMismoOrigenDestino / 60.0, 1);
+                        errores += $"Ya existe un vuelo programado para el mismo trayecto con menos de {diferenciaMinutos} minutos de diferencia en la fecha de salida. ";
+                        break;
                     }
                 }
             }

@@ -50,51 +50,6 @@
 
         #region EndPoints
 
-        /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
-        /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
-        /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
-        [Authorize(Roles = "Cliente")]
-        [HttpGet("ConsultarCompra")]
-        public async Task<ActionResult<List<CompraDto>>> ConsultarCompra([FromQuery] ParamsConsultarCompra parametrosConsultarEntidad)
-        {
-            var usuarioIdClaim = User.Claims.FirstOrDefault(c => c.Type == "UsuarioId");
-
-            IEnumerable<Compra> listadoEntidad = await ComprasService.GetWithParamsAsync(parametrosConsultarEntidad, Convert.ToInt32(usuarioIdClaim!.Value));
-            return Ok(_iMapper.Map<CompraDto>(listadoEntidad));
-        }
-
-        /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
-        /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
-        /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
-        [HttpGet("ConsultarCompraHistorico")]
-        public async Task<ActionResult<List<CompraHistoricoDto>>> ConsultarCompraHistorico([FromQuery] ParamsConsultarCompraHistorico parametrosConsultarEntidad)
-        {
-            IEnumerable<CompraHistorico> listadoEntidad = await ComprasService.GetWithParamsAsync(parametrosConsultarEntidad);
-            return Ok(_iMapper.Map<CompraHistoricoDto>(listadoEntidad));
-        }
-
-        /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
-        /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
-        /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
-        [Authorize(Roles = "Cliente")]
-        [HttpGet("ConsultarCompraDetalle")]
-        public async Task<ActionResult<List<CompraDetalleDto>>> ConsultarCompraDetalle([FromQuery] ParamsConsultarCompraDetalle parametrosConsultarEntidad)
-        {
-            IEnumerable<CompraDetalle> listadoEntidad = await ComprasService.GetWithParamsAsync(parametrosConsultarEntidad);
-            return Ok(_iMapper.Map<CompraDetalleDto>(listadoEntidad));
-        }
-
-        /// <summary>Endpoint para consultar la información de la entidad registrada en el sistema.</summary>
-        /// <param name="parametrosConsultarEntidad">Parametros de entrada para realizar la operacion.</param>
-        /// <returns>Objeto de Dto con toda la entidad del sistema.</returns>
-        [Authorize(Roles = "Cliente")]
-        [HttpGet("ConsultarCompraDetalleHistorico")]
-        public async Task<ActionResult<List<CompraDetalleHistoricoDto>>> ConsultarCompraDetalleHistorico([FromQuery] ParamsConsultarCompraDetalleHistorico parametrosConsultarEntidad)
-        {
-            IEnumerable<CompraDetalleHistorico> listadoEntidad = await ComprasService.GetWithParamsAsync(parametrosConsultarEntidad);
-            return Ok(_iMapper.Map<CompraDetalleHistoricoDto>(listadoEntidad));
-        }
-
         /// <summary>Endpoint para reservar asientos mientras se realiza la compra.</summary>
         /// <param name="parametrosReservarAsientos">Parametros de entrada para realizar la operacion.</param>
         /// <returns>Lista Dto con la información de los asientos reservados.</returns>
@@ -105,6 +60,30 @@
         {
             IEnumerable<VueloAsiento> Entidad = await ComprasService.ReservarAsientosAsync(parametrosReservarAsientos);
             return Ok(_iMapper.Map<List<VueloAsiento>>(Entidad));
+        }
+
+        /// <summary>Endpoint para realizar la compra de los asientos de un vuelo.</summary>
+        /// <param name="parametrosComprarAsientos">Parametros de entrada para realizar la operacion.</param>
+        /// <returns>Lista Dto con la información de la compra realizada.</returns>
+        [Authorize(Roles = "Cliente")]
+        [HttpPost]
+        [Route("CompraAsientosVuelo")]
+        public async Task<ActionResult<Compra>> CompraAsientosVuelo(ParamsCompraAsientos parametrosComprarAsientos)
+        {
+            var usuarioIdClaim = User.Claims.FirstOrDefault(c => c.Type == "UsuarioId");
+            Compra Entidad = await ComprasService.ComprarAsientosAsync(parametrosComprarAsientos, Convert.ToInt32(usuarioIdClaim!.Value));
+            return Ok(_iMapper.Map<Compra>(Entidad));
+        }
+
+        /// <summary>Endpoint para consultar la información de las compras realizadas por el usuario.</summary>
+        /// <returns>Objeto de Dto con la información de las compras realizadas por el usuario.</returns>
+        [Authorize(Roles = "Cliente")]
+        [HttpGet("BuscarComprasUsuario")]
+        public async Task<ActionResult<List<ComprasRealizadasUsuarioDto>>> BuscarComprasUsuario()
+        {
+            var usuarioIdClaim = User.Claims.FirstOrDefault(c => c.Type == "UsuarioId");
+            IEnumerable<ComprasRealizadasUsuarioPoco> listadoEntidad = await ComprasService.BuscarComprasUsuarioAsycn(Convert.ToInt32(usuarioIdClaim!.Value));
+            return Ok(_iMapper.Map<List<ComprasRealizadasUsuarioDto>>(listadoEntidad));
         }
         #endregion
 

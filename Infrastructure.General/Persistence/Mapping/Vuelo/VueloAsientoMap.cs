@@ -19,9 +19,6 @@
 
             builder.HasKey(e => e.VueloAsientoId);
 
-            builder.Property(e => e.VueloAsientoId)
-                .ValueGeneratedOnAdd();
-
             builder.Ignore(e => e.Id);
 
             builder.Property(e => e.VueloId)

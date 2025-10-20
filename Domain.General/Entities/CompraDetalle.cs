@@ -24,6 +24,6 @@
         public decimal? CompraDetallePrecio { get; set; }
 
         /// <summary>Navegación inversa hacia el asiento del vuelo (uno a uno).</summary>
-        public VueloAsiento VueloAsiento { get; set; } = null!;
+        public virtual VueloAsiento VueloAsiento { get; set; } = null!;
     }
 }
