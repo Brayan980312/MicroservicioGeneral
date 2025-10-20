@@ -55,7 +55,7 @@
                                                     )) 
                  .Select(vuelos => new BusquedaVueloPoco
                     {
-                        VueloId = vuelos.AvionId,
+                        VueloId = vuelos.VueloId,
                         VueloCodigo = vuelos.VueloCodigo,
                         EstadoVueloId = vuelos.EstadoVueloId,
                         EstadoVueloNombre = vuelos.EstadoVuelo.EstadoVueloNombre,
@@ -104,7 +104,7 @@
                                                   vuelo.VueloFechaHoraSalida.Value.Date == objSearch.VueloFechaSalida.Date)
                  .Select(vuelos => new BusquedaVuelosDisponiblesPoco
                  {
-                     VueloId = vuelos.AvionId,
+                     VueloId = vuelos.VueloId,
                      CiudadOrigenNombre = vuelos.CiudadOrigen.CiudadNombre,
                      CiudadOrigenNomenclatura = vuelos.CiudadOrigen.CiudadNomenclatura,
                      CiudadOrigenNombreNomenclatura = vuelos.CiudadOrigen.CiudadNombre + " (" + vuelos.CiudadOrigen.CiudadNomenclatura + ")",
