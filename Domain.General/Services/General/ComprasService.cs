@@ -5,6 +5,7 @@
     using Domain.General.CustomEntities.Params;
     using Domain.General.CustomEntities.Vuelo;
     using Domain.General.Entities;
+    using Domain.General.Interfaces.External;
     using Domain.General.Interfaces.General;
     using Domain.General.Interfaces.UnitOfWork;
     using Microsoft.EntityFrameworkCore;
@@ -32,18 +33,21 @@
         /// <summary>Inyeccion del servicio Vuelos.</summary>
         private readonly IVueloService _iVueloService;
 
+        /// <summary>Inyeccion del servicio Redis Cache.</summary>
+        private readonly ICacheService _iCacheService;
         #endregion
 
         #region Constructor
 
         ///<summary>Inicializa una nueva instancia de la clase VueloService.</summary>
         /// <param name="iUnitOfWork">Inyección de dependencias de la unidad de trabajo - UnitOfWork.</param>
-        public ComprasService(IUnitOfWork iUnitOfWork, IMapper iMapper, IConfiguracionService iConfiguracionService, IVueloService iVueloService)
+        public ComprasService(IUnitOfWork iUnitOfWork, IMapper iMapper, IConfiguracionService iConfiguracionService, IVueloService iVueloService, ICacheService iCacheService)
         {
             _iUnitOfWork = iUnitOfWork;
             _iMapper = iMapper;
             _iConfiguracionService = iConfiguracionService;
             _iVueloService = iVueloService;
+            _iCacheService = iCacheService;
         }
 
         #endregion
@@ -182,7 +186,16 @@
                     await CreateCompraDetalleHistorico(detalle);
                 }
 
-                scope.Complete();
+                // Consulta el vuelo comprado para borrar el cache redis
+                ParamsConsultarVuelo paramsConsultaVuelo = new ParamsConsultarVuelo { VueloId = paramsCompra.VueloId };
+                Vuelo vueloComprado = new Vuelo();
+                IEnumerable<Vuelo> vuelos = await _iVueloService.GetWithParamsAsync(paramsConsultaVuelo);
+                vueloComprado = vuelos.FirstOrDefault();
+
+                string cacheKey = $"vuelo:{vueloComprado.CiudadOrigenId}:{vueloComprado.CiudadDestinoId}:{vueloComprado.VueloFechaHoraSalida:yyyyMMdd}";
+                await _iCacheService.RemoveAsync(cacheKey);
+
+                scope.Complete();                
 
                 return nuevaCompra;
             }

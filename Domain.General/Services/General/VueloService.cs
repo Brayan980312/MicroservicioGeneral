@@ -8,6 +8,7 @@
     using Domain.General.CustomEntities.Params;
     using Domain.General.CustomEntities.Vuelo;
     using Domain.General.Entities;
+    using Domain.General.Interfaces.External;
     using Domain.General.Interfaces.General;
     using Domain.General.Interfaces.UnitOfWork;
     using Microsoft.EntityFrameworkCore;
@@ -42,13 +43,16 @@
         /// <summary>Inyeccion del servicio Metricas.</summary>
         private readonly IMetricasService _iMetricasService;
 
+        /// <summary>Inyeccion del servicio Redis Cache.</summary>
+        private readonly ICacheService _iCacheService;
+
         #endregion
 
         #region Constructor
 
         ///<summary>Inicializa una nueva instancia de la clase VueloService.</summary>
         /// <param name="iUnitOfWork">Inyección de dependencias de la unidad de trabajo - UnitOfWork.</param>
-        public VueloService(IUnitOfWork iUnitOfWork, IMapper iMapper, IAdministracionService iAdministracionService, IAvionService iAvionService, IConfiguracionService iConfiguracionService, IMetricasService iMetricasService)
+        public VueloService(IUnitOfWork iUnitOfWork, IMapper iMapper, IAdministracionService iAdministracionService, IAvionService iAvionService, IConfiguracionService iConfiguracionService, IMetricasService iMetricasService, ICacheService iCacheService)
         {
             _iUnitOfWork = iUnitOfWork;
             _iMapper = iMapper;
@@ -56,6 +60,7 @@
             _iAvionService = iAvionService;
             _iConfiguracionService = iConfiguracionService;
             _iMetricasService = iMetricasService;
+            _iCacheService = iCacheService;
         }
 
         #endregion
@@ -83,12 +88,23 @@
         /// <returns>Lista BusquedaVuelosDisponiblesPoco con la información de los vuelos disponibles buscados.</returns>
         public async Task<IEnumerable<BusquedaVuelosDisponiblesPoco>> ConsultarVuelosDisponiblesPersonalizado(ParamsBusquedaVuelosDisponibles paramsSearch)
         {
-            // Realiza la actualización de la metrica de vuelos más buscados
-            ParamsCrearActualizarVuelosMasBuscados metricaVuelosMasBuscados = new ParamsCrearActualizarVuelosMasBuscados();
-            metricaVuelosMasBuscados.CiudadOrigenId = paramsSearch.CiudadOrigenId;
-            metricaVuelosMasBuscados.CiudadDestinoId = paramsSearch.CiudadDestinoId;
-            await _iMetricasService.CreateAsync(metricaVuelosMasBuscados);
+            await _iMetricasService.CreateAsync(new ParamsCrearActualizarVuelosMasBuscados
+            {
+                CiudadOrigenId = paramsSearch.CiudadOrigenId,
+                CiudadDestinoId = paramsSearch.CiudadDestinoId
+            });
 
+            // Generar una clave única de caché según los parámetros de búsqueda (origen, destino, fecha y pasajeros)
+            string cacheKey = $"vuelo:{paramsSearch.CiudadOrigenId}:{paramsSearch.CiudadDestinoId}:{paramsSearch.VueloFechaSalida:yyyyMMdd}";
+
+            // obtiene los datos desde Redis
+            var cachedData = await _iCacheService.GetAsync<IEnumerable<BusquedaVuelosDisponiblesPoco>>(cacheKey);
+            if (cachedData != null)
+            {
+                return cachedData;
+            }
+
+            // Si no está en caché, consultamos la base de datos
             IEnumerable<BusquedaVuelosDisponiblesPoco> vuelosDisponibles = await _iUnitOfWork.DLVueloPersonalizado.ConsultarVuelosDisponibles(paramsSearch);
             List<BusquedaVuelosDisponiblesPoco> vuelosDisponiblesFinales = new List<BusquedaVuelosDisponiblesPoco>();
 
@@ -106,6 +122,12 @@
 
             IEnumerable<BusquedaVuelosDisponiblesPoco> resultadoFinal = vuelosDisponiblesFinales;
 
+            // Guardar el resultado en caché por 2 minutos siempre y cuando exista información
+            if (vuelosDisponiblesFinales.Count() > 0)
+            {
+                await _iCacheService.SetAsync(cacheKey, vuelosDisponiblesFinales, TimeSpan.FromMinutes(2));
+            }
+            
             return resultadoFinal;
         }
 
@@ -169,6 +191,11 @@
                 vueloActualizar.VueloId = paramsUpdate.VueloId;
                 Expression<Func<Vuelo, bool>> filtro = vueloActualizar.ToFilterExpression<Vuelo>();
                 vueloActualizar = await _iUnitOfWork.Repository<Vuelo>().ConsultarUnoAsync(filtro);
+
+                // Se debe limpiar la llave que se encuentra en Redis Cache ya que sufre cambios el vuelo
+                string cacheKey = $"vuelo:{vueloActualizar.CiudadOrigenId}:{vueloActualizar.CiudadDestinoId}:{vueloActualizar.VueloFechaHoraSalida:yyyyMMdd}";
+                await _iCacheService.RemoveAsync(cacheKey);
+
                 vueloActualizar.VueloCodigo = paramsUpdate.VueloCodigo;
                 vueloActualizar.CiudadOrigenId = paramsUpdate.CiudadOrigenId;
                 vueloActualizar.CiudadDestinoId = paramsUpdate.CiudadDestinoId;
@@ -207,6 +234,11 @@
                 paramsConsultarVuelo.VueloId = updateEstado.VueloId;
                 ListadoEntidad = await GetWithParamsAsync(paramsConsultarVuelo);
                 objetoEntidad = ListadoEntidad.FirstOrDefault();
+
+                // Se debe limpiar la llave que se encuentra en Redis Cache ya que sufre cambios el vuelo
+                string cacheKey = $"vuelo:{objetoEntidad.CiudadOrigenId}:{objetoEntidad.CiudadDestinoId}:{objetoEntidad.VueloFechaHoraSalida:yyyyMMdd}";
+                await _iCacheService.RemoveAsync(cacheKey);
+
                 objetoEntidad.EstadoVueloId = updateEstado.EstadoVueloId;
 
                 await _iUnitOfWork.Repository<Vuelo>().ActualizarAsync(objetoEntidad);
