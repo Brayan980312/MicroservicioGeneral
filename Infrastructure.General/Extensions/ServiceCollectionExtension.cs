@@ -45,6 +45,9 @@
             // Registro automático de servicios por convención.
             RegisterServicesByConvention(services);
 
+            // Registro del servicio Redis
+            services.AddScoped<ICacheService, CacheService>();
+
             // Servicio hospedado para manejar eventos del ciclo de vida de la aplicación.
             services.AddHostedService<ApplicationLifetimeEventsHostedService>();
         }

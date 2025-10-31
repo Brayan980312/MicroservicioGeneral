@@ -1,9 +1,12 @@
 using Api.General.Middlewares;
+using Domain.General.Interfaces.External;
 using Infrastructure.General.Extensions;
+using Infrastructure.General.External;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -145,6 +148,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+// Configuración de redis
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+    ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis")!)
+);
 
 // Construir la aplicación
 var app = builder.Build();

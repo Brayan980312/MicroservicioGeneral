@@ -10,11 +10,15 @@ Gracias a la integración con el **microservicio de seguridad** y la implementac
 
 Adicionalmente, se está implementando **auditoría general de toda la aplicación**, registrando las acciones críticas, y métricas de **vuelos más buscados**, para análisis y optimización del sistema.
 
+Finalmente, el proyecto incorpora **Redis como caché distribuido**, optimizando el rendimiento en operaciones de búsqueda de vuelos mediante almacenamiento temporal de resultados en memoria. Esto permite reducir la carga en la base de datos y mejorar los tiempos de respuesta del sistema.
+
 ---
 
 ## Tecnologías utilizadas
 
 - **Backend:** ASP.NET Core 8
+- **Cache distribuido:** Redis (vía `StackExchange.Redis`)
+- **Contenedores:** Docker Desktop
 - **Microservicio de seguridad:** JWT y políticas de autorización
 - **Patrones de diseño:** Repository, Service Layer, DTO, Service Locator, Unit of Work
 - **Arquitectura:** Arquitectura limpia, respetando principios SOLID
@@ -31,6 +35,7 @@ Antes de ejecutar el proyecto, asegúrate de tener instalado:
 
 - **Visual Studio 2022**
 - **.NET 8 SDK**
+- **Docker Desktop** (necesario para levantar el contenedor de Redis)
 - **Proyecto `Utilitarios`** en la **misma raíz** que este proyecto
 - Conexión a la base de datos configurada correctamente
 
@@ -72,7 +77,15 @@ Antes de ejecutar el proyecto, asegúrate de tener instalado:
 }
 ```
 
-5. Compila y ejecuta el proyecto desde Visual Studio 2022 preferiblemente.
+5. Asegúrate de tener Docker Desktop ejecutándose y luego crea el contenedor de Redis:
+
+```bash
+   docker run -d --name flyhub-redis -p 6379:6379 redis:latest
+```
+
+Esto descargará la última versión de Redis y la ejecutará de manera local, exponiendo el puerto 6379 (usado por la aplicación para conectarse al caché).
+
+6. Compila y ejecuta el proyecto desde Visual Studio 2022 preferiblemente.
 
 ---
 
@@ -87,6 +100,7 @@ Antes de ejecutar el proyecto, asegúrate de tener instalado:
 - **Autorización:** Endpoints protegidos mediante JWT y políticas definidas por roles o permisos.
 - **Auditoría general:** Registro de todas las acciones críticas en la aplicación.
 - **Métricas de vuelos más buscados:** Seguimiento para análisis y optimización del sistema.
+- **Caché distribuido (Redis):** Mejora el rendimiento en las búsquedas de vuelos, reduciendo consultas repetidas a la base de datos durante un periodo de tiempo configurable.
 
 ---
 
@@ -94,11 +108,11 @@ Antes de ejecutar el proyecto, asegúrate de tener instalado:
 
 El proyecto sigue **arquitectura limpia** con capas bien definidas:
 
-- **API:** Controladores que exponen los endpoints
-- **Domain:** Modelos de dominio y Data Transfer Objects, Lógica de negocio, validaciones y políticas de concurrencia
-- **Infrastructure / Repository:** Acceso a base de datos
-- **Utilitarios:** Funcionalidades compartidas (proyecto externo)
-- **Patrones aplicados:** Repository, Service Layer, DTO, Service Locator, Unit of Work
+- **API:** Controladores que exponen los endpoints.
+- **Domain:** Modelos de dominio y Data Transfer Objects, Lógica de negocio, validaciones y políticas de concurrencia.
+- **Infrastructure / Repository:** Acceso a base de datos, repositorios, integración de Redis y servicios externos.
+- **Utilitarios:** Funcionalidades compartidas (proyecto externo).
+- **Patrones aplicados:** Repository, Service Layer, DTO, Service Locator, Unit of Work.
 
 ---
 
